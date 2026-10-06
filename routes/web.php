@@ -5,6 +5,8 @@ use App\Http\Controllers\TerritoryController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [TerritoryController::class, 'home'])->name('home');
+Route::inertia('/ebooks/pagina-de-vendas', 'ebooks/pagina-de-vendas')->name('ebooks.sales');
+Route::inertia('/ebooks/pagina-de-obrigado', 'ebooks/pagina-de-obrigado')->name('ebooks.thanks');
 Route::get('/estados', [TerritoryController::class, 'index'])->name('territory.index');
 Route::get('/estados/{state:slug}', [TerritoryController::class, 'state'])->name('territory.state');
 Route::get('/estados/{state:slug}/municipios/{municipality:slug}', [TerritoryController::class, 'municipality'])
