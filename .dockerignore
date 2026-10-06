@@ -1,0 +1,10 @@
+vendor/
+node_modules/
+.git/
+storage/logs/*
+.env
+bootstrap/cache/*.php
+public/build/
+public/hot
+desgarrados2
+database/*.sqlite
