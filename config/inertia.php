@@ -16,8 +16,12 @@ return [
     */
 
     'ssr' => [
-        'enabled' => true,
-        'url' => 'http://127.0.0.1:13714',
+        'enabled' => (bool) env('INERTIA_SSR_ENABLED', true),
+        'url' => env('INERTIA_SSR_URL', 'http://127.0.0.1:13714'),
+        // Renderer travado não pode segurar o PHP-FPM: após o limite, a página segue sem SSR.
+        'timeout' => (float) env('INERTIA_SSR_TIMEOUT', 3),
+        'ensure_bundle_exists' => (bool) env('INERTIA_SSR_ENSURE_BUNDLE_EXISTS', true),
+        'throw_on_error' => (bool) env('INERTIA_SSR_THROW_ON_ERROR', false),
         // 'bundle' => base_path('bootstrap/ssr/ssr.mjs'),
 
     ],

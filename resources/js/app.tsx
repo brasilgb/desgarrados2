@@ -15,7 +15,10 @@ void createInertiaApp({
         switch (true) {
             case name.startsWith('ebooks/'):
                 return null;
-            case name === 'welcome' || name.startsWith('territory/'):
+            case name === 'welcome' ||
+                name.startsWith('territory/') ||
+                name === 'editorial/feed' ||
+                name === 'editorial/publication':
                 return PublicLayout;
             case name.startsWith('auth/'):
                 return AuthLayout;

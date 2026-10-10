@@ -1,0 +1,122 @@
+# Desgarrados 2 — override PROPOSTO para a infra-abrasil (DESG-V2-006.1). NÃO aplicado.
+#
+# Uso, na raiz da infra-abrasil (exige Docker Compose >= 2.24.4 por causa de !override/!reset):
+#   docker compose -f docker-compose.yml -f gateway/desgarrados/deploy/compose.desgarrados2.yml config --quiet
+#   docker compose -f docker-compose.yml -f gateway/desgarrados/deploy/compose.desgarrados2.yml up -d desgarrados-mariadb desgarrados-ssr
+#
+# O que muda em relação ao compose atual, apenas nos serviços do Desgarrados:
+# - banco MariaDB próprio (desgarrados2), separado do MySQL compartilhado; o banco MySQL `desgarrados` não é tocado;
+# - ambiente explícito de produção: sem env_file .env.example e sem a âncora x-laravel-environment
+#   (que injetava APP_URL/DB do VetorOS e a chave do WAHA no contêiner do Desgarrados);
+# - renderer SSR interno e health check do scheduler.
+# Rollback: remover o "-f" deste arquivo e subir novamente os serviços do Desgarrados (ver docs/operacao-producao.md).
+
+services:
+    desgarrados-mariadb:
+        image: mariadb:11.8
+        restart: unless-stopped
+        command:
+            [
+                '--character-set-server=utf8mb4',
+                '--collation-server=utf8mb4_unicode_ci',
+            ]
+        environment:
+            # Vazia, o MariaDB recusa inicializar; só este serviço falha e o compose dos demais segue válido.
+            MARIADB_ROOT_PASSWORD: ${DESGARRADOS_DB_ROOT_PASSWORD:-}
+            MARIADB_DATABASE: desgarrados2
+            MARIADB_USER: desgarrados2_user
+            MARIADB_PASSWORD: ${DESGARRADOS_DB_PASSWORD:?configure DESGARRADOS_DB_PASSWORD in .env}
+        volumes: [./volumes/desgarrados-mariadb:/var/lib/mysql]
+        networks: [infra-abrasil-network]
+        healthcheck:
+            {
+                test:
+                    [
+                        'CMD',
+                        'healthcheck.sh',
+                        '--connect',
+                        '--innodb_initialized',
+                    ],
+                interval: 10s,
+                timeout: 5s,
+                retries: 15,
+                start_period: 30s,
+            }
+        logging:
+            { driver: json-file, options: { max-size: '10m', max-file: '3' } }
+
+    desgarrados-ssr:
+        build:
+            {
+                context: ./gateway/desgarrados,
+                dockerfile: Dockerfile,
+                target: ssr,
+            }
+        restart: unless-stopped
+        # Sem "ports": /render e /shutdown não têm autenticação e só podem ser alcançados pela rede interna.
+        networks: [infra-abrasil-network]
+        logging:
+            { driver: json-file, options: { max-size: '10m', max-file: '3' } }
+
+    desgarrados:
+        env_file: !reset []
+        environment: &desgarrados-env !override
+            APP_NAME: Desgarrados
+            APP_ENV: ${DESGARRADOS_APP_ENV:-production}
+            APP_DEBUG: ${DESGARRADOS_APP_DEBUG:-false}
+            APP_URL: ${DESGARRADOS_APP_URL:-https://desgarrados.com.br}
+            APP_KEY: ${DESGARRADOS_APP_KEY:?configure DESGARRADOS_APP_KEY in .env}
+            APP_LOCALE: pt_BR
+            APP_FALLBACK_LOCALE: en
+            APP_DISPLAY_TIMEZONE: America/Sao_Paulo
+            LOG_CHANNEL: stderr
+            LOG_LEVEL: ${DESGARRADOS_LOG_LEVEL:-warning}
+            DB_CONNECTION: mariadb
+            DB_HOST: desgarrados-mariadb
+            DB_PORT: 3306
+            DB_DATABASE: desgarrados2
+            DB_USERNAME: desgarrados2_user
+            DB_PASSWORD: ${DESGARRADOS_DB_PASSWORD:?configure DESGARRADOS_DB_PASSWORD in .env}
+            SESSION_DRIVER: database
+            SESSION_SECURE_COOKIE: ${DESGARRADOS_SESSION_SECURE_COOKIE:-true}
+            SESSION_HTTP_ONLY: 'true'
+            SESSION_SAME_SITE: lax
+            CACHE_STORE: database
+            QUEUE_CONNECTION: database
+            INERTIA_SSR_ENABLED: 'true'
+            INERTIA_SSR_URL: http://desgarrados-ssr:13714
+            INERTIA_SSR_TIMEOUT: 3
+            MAIL_MAILER: ${DESGARRADOS_MAIL_MAILER:-log}
+            MAIL_SCHEME: ${DESGARRADOS_MAIL_SCHEME:-}
+            MAIL_HOST: ${DESGARRADOS_MAIL_HOST:-}
+            MAIL_PORT: ${DESGARRADOS_MAIL_PORT:-587}
+            MAIL_USERNAME: ${DESGARRADOS_MAIL_USERNAME:-}
+            MAIL_PASSWORD: ${DESGARRADOS_MAIL_PASSWORD:-}
+            MAIL_FROM_ADDRESS: ${DESGARRADOS_MAIL_FROM_ADDRESS:-nao-responda@desgarrados.com.br}
+            MAIL_FROM_NAME: Desgarrados
+            KIWIFY_CRESCER_SEGURO_CHECKOUT_URL: ${DESGARRADOS_KIWIFY_CRESCER_SEGURO_CHECKOUT_URL:-}
+        # service_started (não healthy): uma falha no banco do Desgarrados não pode impedir o nginx de subir os demais sites.
+        depends_on: !override
+            desgarrados-mariadb: { condition: service_started }
+
+    desgarrados-worker:
+        env_file: !reset []
+        environment: *desgarrados-env
+        depends_on: !override
+            desgarrados-mariadb: { condition: service_started }
+        healthcheck: { disable: true }
+
+    desgarrados-scheduler:
+        env_file: !reset []
+        environment: *desgarrados-env
+        depends_on: !override
+            desgarrados-mariadb: { condition: service_started }
+        # Falha com banco fora, publicador parado há mais de 5 min ou agendamento vencido; SSR fora é apenas aviso.
+        healthcheck:
+            {
+                test: ['CMD', 'php', 'artisan', 'ops:health'],
+                interval: 60s,
+                timeout: 30s,
+                retries: 3,
+                start_period: 120s,
+            }

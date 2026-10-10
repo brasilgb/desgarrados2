@@ -1,14 +1,16 @@
 import { Link, usePage } from '@inertiajs/react';
 import { ArrowUpRight, MapPin } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { index as stories } from '@/routes/stories';
 import { dashboard, home, login, register } from '@/routes';
 import { index as administration } from '@/routes/admin';
 import { index as states, myLand } from '@/routes/territory';
 import type { User } from '@/types';
 
 export default function PublicLayout({ children }: { children: ReactNode }) {
-    const { auth, can } = usePage<{
+    const { auth, can, hasStories } = usePage<{
         auth: { user: User | null };
+        hasStories: boolean;
         can: { accessAdministration: boolean };
     }>().props;
     return (
@@ -37,6 +39,14 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                         aria-label="Navegação principal"
                         className="flex flex-wrap items-center gap-5 text-sm font-medium"
                     >
+                        {hasStories && (
+                            <Link
+                                href={stories()}
+                                className="rounded hover:underline"
+                            >
+                                Histórias
+                            </Link>
+                        )}
                         <Link
                             href={states()}
                             className="rounded hover:underline focus-visible:outline-2"

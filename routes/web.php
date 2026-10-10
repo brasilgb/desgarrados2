@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AdministrationController;
 use App\Http\Controllers\TerritoryController;
+use App\Http\Middleware\EditorialNoIndex;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [TerritoryController::class, 'home'])->name('home');
@@ -13,7 +14,7 @@ Route::get('/estados/{state:slug}/municipios/{municipality:slug}', [TerritoryCon
     ->scopeBindings()->name('territory.municipality');
 Route::get('/minha-terra', [TerritoryController::class, 'myLand'])->name('territory.myLand');
 
-Route::middleware(['auth', 'verified', 'can:access-administration'])->prefix('administracao')->name('admin.')->group(function () {
+Route::middleware([EditorialNoIndex::class, 'auth', 'verified', 'can:access-administration'])->prefix('administracao')->name('admin.')->group(function () {
     Route::get('/', [AdministrationController::class, 'index'])->name('index');
     Route::get('/papeis', [AdministrationController::class, 'roles'])->name('roles');
     Route::post('/usuarios/{user}/papeis/{role}', [AdministrationController::class, 'grant'])->name('grant');
@@ -25,3 +26,5 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 require __DIR__.'/settings.php';
+
+require __DIR__.'/editorial.php';

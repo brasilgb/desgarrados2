@@ -1,0 +1,13 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Model;
+
+/** @property int $id
+ * @property string $name
+ * @property string $slug
+ */
+#[Fillable(['name', 'slug'])]
+class Tag extends Model {}

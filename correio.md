@@ -1,79 +1,143 @@
-# DESG-V2-004 — Fundação territorial e administrativa
+# DESG-V2-007 — Mídia editorial versionada
 
-**Projeto:** Desgarrados 2  
-**Status:** autorizado para implementação controlada.
+**Status:** autorizado para implementação local.
 
 ## Objetivo
 
-Implementar o primeiro incremento funcional da arquitetura aprovada na DESG-V2-003, preservando integralmente a fundação existente.
+Implementar o gerenciamento completo de imagens editoriais do Desgarrados 2, integrado ao sistema de publicações, revisões e aprovação existente.
 
-## 1. Território
+A mídia deverá respeitar a identidade do portal: histórias de quem partiu, memórias da terra natal, cultura, tradições, causos e paisagens regionais.
 
-- Criar migrations para `states`, `municipalities`, `regions` e `municipality_region`.
-- Implementar Models, relacionamentos, índices e restrições.
-- Criar importador idempotente utilizando dados oficiais do IBGE.
-- Estruturar o território nacional sem limitar o schema ao Sul.
-- Priorizar Rio Grande do Sul nos dados e na experiência editorial inicial.
-- Permitir regiões culturais sobrepostas e associações de municípios a múltiplas regiões.
-- Preservar registros já referenciados durante futuras sincronizações.
+## Fase A — Organização do ambiente
 
-## 2. Administração e acesso
+1. Padronizar npm e `package-lock.json`.
+2. Verificar o conteúdo de `yarn.lock` antes de descartá-lo; não excluir outros arquivos não rastreados.
+3. Manter os arquivos Docker existentes intocados, reservados à futura VPS.
+4. Preservar `desgarrados2` e `desgarrados2_test`.
+5. Não modificar configurações globais do host sem autorização.
 
-- Implementar `roles` e `role_user`.
-- Definir papéis conforme a matriz aprovada.
-- Implementar Gates e Policies necessários.
-- Não criar usuários, administradores ou senhas automaticamente.
-- Não permitir bypass universal de privacidade.
-- Auditar concessões e revogações de papéis.
-- Proteger a existência de pelo menos um administrador ativo.
+## Fase B — Modelagem de mídia
 
-## 3. Navegação inicial
+Implementar as tabelas previstas na arquitetura:
 
-Implementar as primeiras páginas funcionais:
+- `media_assets`: registro do arquivo, proprietário, MIME, dimensões, tamanho, estado de processamento e direitos de uso.
+- `revision_media`: associação entre imagens e revisões, posição, finalidade, texto alternativo, legenda e crédito.
 
-- Página pública inicial.
-- Exploração por estados.
-- Exploração por municípios.
-- Página territorial **Minha terra**, sem persistir dados pessoais automaticamente.
-- Estrutura de navegação administrativa protegida.
+Usar migrations incrementais, constraints, índices e chaves estrangeiras adequados ao MariaDB.
 
-Utilizar Laravel, Inertia, React e TypeScript já instalados. Priorizar componentes reutilizáveis, responsividade e acessibilidade.
+O mesmo arquivo poderá ser reutilizado em diferentes revisões sem duplicação desnecessária.
 
-A identidade visual inicial deve refletir o conceito **“Nossas raízes seguem conosco”**, evitando aparência de painel administrativo genérico nas páginas públicas.
+## Fase C — Upload e processamento
 
-## 4. Segurança e integridade
+Implementar upload autenticado e autorizado, inicialmente para imagens JPEG, PNG e WebP.
 
-- Utilizar exclusivamente os bancos autorizados `desgarrados2` e `desgarrados2_test`.
-- Preservar a proteção de testes existente.
-- Não executar `migrate:fresh` no banco principal.
-- Não consultar ou reutilizar projetos externos.
-- Não instalar dependências sem necessidade justificada.
-- Garantir integridade referencial e isolamento de permissões.
+Requisitos:
 
-## 5. Verificações
+- Limite inicial de 10 MB.
+- Verificar conteúdo real e dimensões.
+- Rejeitar SVG, HTML e arquivos inválidos.
+- Gerar nomes internos aleatórios.
+- Guardar originais em armazenamento privado.
+- Remover metadados EXIF dos derivados.
+- Gerar variantes otimizadas para capa, cartões e conteúdo.
+- Preservar proporções e evitar ampliação desnecessária.
+- Executar processamento de modo seguro e idempotente.
 
-Executar:
+Utilizar inicialmente GD, disponível no host. Avaliar necessidade de bibliotecas adicionais antes de instalá-las.
 
-- Testes Pest e testes de integridade territorial.
-- Validação de permissões.
-- PHPStan e Pint.
-- TypeScript.
-- Build do frontend.
-- Verificação SSR, quando aplicável.
-- Homologação visual em navegador, caso disponível.
+## Fase D — Integração editorial
 
-## 6. Entrega
+Na redação, adicionar:
 
-Registrar no `executed.md`:
+1. Upload de imagens.
+2. Seleção de capa.
+3. Biblioteca de imagens autorizadas.
+4. Pré-visualização da imagem.
+5. Legenda, crédito e texto alternativo.
+6. Registro de direitos de uso.
+7. Organização das imagens da publicação.
+8. Remoção de associação com uma revisão.
 
-1. Arquivos alterados e migrations criadas.
-2. Estrutura final de tabelas, índices e FKs.
-3. Resultado da importação do IBGE.
-4. Rotas e páginas funcionais.
-5. Evidências dos testes.
-6. Pendências e riscos.
-7. Recomendações para a DESG-V2-005.
+A interface deve utilizar React, Inertia e TypeScript, mantendo o padrão visual atual.
 
-**Não iniciar o módulo editorial completo nem a comunidade nesta etapa.**
+**Regra obrigatória:** cada revisão possui seu conjunto de imagens aprovado. A criação de uma nova revisão não poderá modificar silenciosamente a mídia da versão já publicada.
 
-Não declarar como concluída nenhuma validação que não tenha sido efetivamente executada.
+## Fase E — Segurança e publicação
+
+- Imagens em elaboração permanecem privadas.
+- Imagens rejeitadas ou bloqueadas não ficam acessíveis publicamente.
+- Somente derivados de mídias aprovadas podem ser publicados.
+- Ocultação da publicação deve retirar o acesso público à mídia associada.
+- Impedir acesso indevido por ID, caminho ou URL.
+- Não disponibilizar originais privados por links diretos.
+- Registrar operações relevantes em auditoria.
+- Exigir informações de direitos de uso antes da publicação.
+
+## Fase F — Experiência pública
+
+Integrar as imagens às páginas de histórias, causos, memórias e cultura.
+
+Implementar:
+
+- Capa responsiva.
+- Imagens no conteúdo editorial.
+- Legendas e créditos.
+- Texto alternativo para acessibilidade.
+- Dimensões explícitas para evitar deslocamentos de layout.
+- Carregamento otimizado.
+- Metadados Open Graph com imagem aprovada, quando disponível.
+- Renderização compatível com SSR.
+
+Evitar galerias complexas ou editores visuais avançados nesta etapa.
+
+## Fase G — Testes
+
+Validar:
+
+- Upload válido e inválido.
+- MIME real.
+- Limites de tamanho e dimensões.
+- Remoção de EXIF.
+- Processamento das variantes.
+- Direitos de uso.
+- Autorização por papel.
+- Associação por revisão.
+- Rejeição e aprovação.
+- Publicação e ocultação.
+- SSR.
+- Privacidade dos originais.
+- Concorrência.
+- Exclusão e limpeza segura de arquivos órfãos.
+
+Executar suíte completa, PHPStan, Pint, TypeScript e build SSR.
+
+Todos os fixtures deverão utilizar exclusivamente `desgarrados2_test`, inclusive arquivos de mídia em armazenamento de teste isolado.
+
+## Restrições
+
+Não iniciar comunidade, comentários, reações, perfis públicos, publicidade ou monetização.
+
+Não executar Docker.
+
+Não realizar push nem deploy.
+
+Não acessar outros projetos.
+
+Não modificar a infraestrutura VPS.
+
+Não realizar operações destrutivas no banco principal.
+
+## Entrega
+
+Atualizar `executed.md` com:
+
+- Arquivos criados e modificados.
+- Migrations e alterações de schema.
+- Fluxo de processamento das imagens.
+- Matriz de autorização.
+- Política de armazenamento e acesso.
+- Resultados dos testes.
+- Evidências HTTP e SSR.
+- Pendências e riscos.
+
+A etapa seguinte somente poderá começar após análise e aprovação da DESG-V2-007.

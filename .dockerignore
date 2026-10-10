@@ -8,3 +8,14 @@ public/build/
 public/hot
 desgarrados2
 database/*.sqlite
+bootstrap/ssr/
+desgarrados
+.env.*
+!.env.example
+.aws/
+.agents/
+.claude/
+.codex/
+.github/
+**/*.sqlite
+**/*.sqlite3

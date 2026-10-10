@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Actions\Administration\ManageRoleAssignments;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\RoleAssignmentRequest;
+use App\Models\Publication;
 use App\Models\Role;
 use App\Models\RoleAssignmentAudit;
 use App\Models\User;
@@ -17,7 +18,8 @@ class AdministrationController extends Controller
 {
     public function index(): Response
     {
-        return Inertia::render('admin/index', ['canManageRoles' => Gate::allows('viewAny', Role::class)]);
+        return Inertia::render('admin/index', ['canEdit' => Gate::allows('viewAny', Publication::class),
+            'canManageRoles' => Gate::allows('viewAny', Role::class)]);
     }
 
     public function roles(): Response
