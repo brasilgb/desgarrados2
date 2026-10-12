@@ -5,6 +5,7 @@ namespace App\Actions\Editorial;
 use App\Enums\PublicationStatus;
 use App\Enums\PublicationType;
 use App\Enums\RevisionStatus;
+use App\Enums\TextRightsStatus;
 use App\Models\AuditEntry;
 use App\Models\Publication;
 use App\Models\PublicationRevision;
@@ -55,6 +56,12 @@ class EditorialWorkflow
                 'summary' => ['nullable', 'string', 'max:500', 'not_regex:/<[^>]*>/u'],
                 'body' => ['required', 'string', 'max:200000', 'not_regex:/<[^>]*>/u'],
                 'public_byline' => ['nullable', 'string', 'max:120', 'not_regex:/<[^>]*>/u'],
+                'rights_status' => ['sometimes', Rule::enum(TextRightsStatus::class)],
+                'rights_author' => ['nullable', 'string', 'max:200'],
+                'rights_holder' => ['nullable', 'string', 'max:200'],
+                'rights_basis' => ['nullable', 'string', 'max:500'],
+                'rights_reference' => ['nullable', 'string', 'max:2048'],
+                'rights_restrictions' => ['nullable', 'string', 'max:5000'],
                 'sources' => ['sometimes', 'array', 'max:30'],
                 'sources.*.title' => ['required', 'string', 'max:200'],
                 'sources.*.url' => ['nullable', 'url:http,https', 'max:2048'],
@@ -67,6 +74,13 @@ class EditorialWorkflow
             $base = isset($data['base_revision_id'])
                 ? $publication->revisions()->whereKey((int) $data['base_revision_id'])->firstOrFail()
                 : $publication->revisions()->latest('version')->first();
+            if ($base) {
+                foreach (['rights_status', 'rights_author', 'rights_holder', 'rights_basis', 'rights_reference', 'rights_restrictions'] as $field) {
+                    if (! array_key_exists($field, $data)) {
+                        $data[$field] = $base->getAttribute($field);
+                    }
+                }
+            }
             unset($data['sources'], $data['base_revision_id']);
             $revision = new PublicationRevision;
             $revision->forceFill([...$data, 'publication_id' => $publication->id, 'editor_id' => $actor->id,
@@ -120,6 +134,7 @@ class EditorialWorkflow
             $publication = $this->lock($publication);
             Gate::forUser($actor)->authorize('publish', $publication);
             $this->assertApproved($publication, $revision);
+            $this->assertTextRights($revision);
             $this->media->assertPublishable($revision);
             $publication->forceFill(['status' => 'published', 'visibility' => 'public',
                 'published_revision_id' => $revision->id, 'published_revision_status' => 'approved', 'published_at' => now(),
@@ -137,6 +152,7 @@ class EditorialWorkflow
             $publication = $this->lock($publication);
             Gate::forUser($actor)->authorize('publish', $publication);
             $this->assertApproved($publication, $revision);
+            $this->assertTextRights($revision);
             $this->media->assertPublishable($revision);
             Validator::make(['scheduled_for' => $date], ['scheduled_for' => ['required', 'date', 'after:now']])->validate();
             // An already public edition remains online while its replacement is scheduled.
@@ -247,6 +263,21 @@ class EditorialWorkflow
         $revision = $revision->fresh() ?? abort(404);
         if ($revision->publication_id !== $publication->id || $revision->status !== RevisionStatus::Approved) {
             throw ValidationException::withMessages(['revision' => 'A revisão deve pertencer à publicação e estar aprovada.']);
+        }
+    }
+
+    private function assertTextRights(PublicationRevision $revision): void
+    {
+        $status = TextRightsStatus::tryFrom((string) $revision->getRawOriginal('rights_status')) ?? TextRightsStatus::Unverified;
+        $complete = match ($status) {
+            TextRightsStatus::Original => filled($revision->rights_author),
+            TextRightsStatus::Authorized, TextRightsStatus::Licensed => filled($revision->rights_holder)
+                && filled($revision->rights_basis) && filled($revision->rights_reference),
+            TextRightsStatus::PublicDomain => filled($revision->rights_basis) && filled($revision->rights_reference),
+            TextRightsStatus::Unverified => false,
+        };
+        if (! $complete) {
+            throw ValidationException::withMessages(['rights_status' => 'Comprove a situação autoral do texto antes de publicar.']);
         }
     }
 

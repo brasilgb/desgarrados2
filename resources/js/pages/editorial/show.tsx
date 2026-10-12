@@ -37,6 +37,7 @@ type Publication = {
     status: string;
     published_revision_id: number | null;
     scheduled_for: string | null;
+    author: Option | null;
     municipality: Option | null;
     category: Option | null;
     tags: Option[];
@@ -49,6 +50,7 @@ export default function Show({
     permissions: can,
     media,
     library,
+    rightsEvidence,
     rightsTypes,
     uploadLimitMb,
 }: {
@@ -64,6 +66,15 @@ export default function Show({
     };
     media: RevisionMediaItem[];
     library: MediaAsset[];
+    rightsEvidence: {
+        id: number;
+        name: string;
+        mime: string;
+        size: number;
+        sha256: string;
+        status: string;
+        created_at: string | null;
+    }[];
     rightsTypes: string[];
     uploadLimitMb: number;
 }) {
@@ -72,6 +83,12 @@ export default function Show({
         summary: r.summary ?? '',
         body: r.body,
         public_byline: r.public_byline ?? '',
+        rights_status: r.rights_status,
+        rights_author: r.rights_author ?? '',
+        rights_holder: r.rights_holder ?? '',
+        rights_basis: r.rights_basis ?? '',
+        rights_reference: r.rights_reference ?? '',
+        rights_restrictions: r.rights_restrictions ?? '',
         sources: r.sources.map((s) => ({
             title: s.title,
             url: s.url ?? '',
@@ -99,6 +116,8 @@ export default function Show({
         regions: p.regions,
     });
     const [editing, setEditing] = useState(false);
+    const evidenceForm = useForm({ file: null as File | null });
+    const revocation = useForm({ reason: '' });
     function act(action: string) {
         operation.transform((data) => ({
             ...data,
@@ -136,6 +155,83 @@ export default function Show({
                     </p>
                 )}
             </header>
+            <a
+                className={actionClass}
+                href={`/administracao/editorial/publicacoes/${p.id}/revisoes/${r.id}/previa`}
+            >
+                Pré-visualizar como visitante
+            </a>
+            <section
+                aria-labelledby="publication-context-heading"
+                className="space-y-3 rounded-xl border p-5"
+            >
+                <h2
+                    id="publication-context-heading"
+                    className="text-lg font-semibold"
+                >
+                    Identificação e curadoria
+                </h2>
+                <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <div>
+                        <dt className="text-sm text-muted-foreground">
+                            Responsável pelo cadastro
+                        </dt>
+                        <dd>{p.author?.name ?? 'Não informado'}</dd>
+                    </div>
+                    <div>
+                        <dt className="text-sm text-muted-foreground">
+                            Assinatura pública
+                        </dt>
+                        <dd>{r.public_byline || 'Não informada'}</dd>
+                    </div>
+                    <div>
+                        <dt className="text-sm text-muted-foreground">
+                            Direitos do texto
+                        </dt>
+                        <dd>
+                            {
+                                {
+                                    original: `Original · ${r.rights_author || 'autor não informado'}`,
+                                    authorized: `Autorizado · ${r.rights_holder || 'titular não informado'}`,
+                                    public_domain: 'Domínio público',
+                                    licensed: `Licenciado · ${r.rights_holder || 'titular não informado'}`,
+                                    unverified: 'Situação ainda não comprovada',
+                                }[r.rights_status]
+                            }
+                        </dd>
+                    </div>
+                    <div>
+                        <dt className="text-sm text-muted-foreground">
+                            Município principal
+                        </dt>
+                        <dd>{p.municipality?.name ?? 'Ainda não associado'}</dd>
+                    </div>
+                    <div>
+                        <dt className="text-sm text-muted-foreground">
+                            Categoria
+                        </dt>
+                        <dd>{p.category?.name ?? 'Ainda não classificada'}</dd>
+                    </div>
+                    <div>
+                        <dt className="text-sm text-muted-foreground">
+                            Regiões
+                        </dt>
+                        <dd>
+                            {p.regions.length
+                                ? p.regions.map((item) => item.name).join(', ')
+                                : 'Ainda não associadas'}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt className="text-sm text-muted-foreground">Tags</dt>
+                        <dd>
+                            {p.tags.length
+                                ? p.tags.map((item) => item.name).join(', ')
+                                : 'Nenhuma tag'}
+                        </dd>
+                    </div>
+                </dl>
+            </section>
             <nav
                 className="flex flex-wrap gap-2"
                 aria-label="Histórico de versões"
@@ -154,6 +250,16 @@ export default function Show({
             <Errors errors={operation.errors} />
             <div className="space-y-4 rounded-xl border p-5">
                 <h2 className="text-xl font-semibold">Fluxo editorial</h2>
+                <p className="text-sm text-muted-foreground" role="status">
+                    {r.status === 'draft' &&
+                        'Rascunho privado. Confira texto, fontes, créditos e classificação antes de enviar para revisão.'}
+                    {r.status === 'in_review' &&
+                        'Esta revisão está em análise. O texto fica congelado; editar cria uma nova versão.'}
+                    {r.status === 'approved' &&
+                        'Revisão aprovada. Um editor pode publicar agora ou programar a publicação.'}
+                    {r.status === 'rejected' &&
+                        'Revisão devolvida para ajustes. Consulte a nota editorial antes de criar uma nova versão.'}
+                </p>
                 {r.review_note && (
                     <p className="whitespace-pre-wrap">
                         Nota da revisão: {r.review_note}
@@ -303,6 +409,7 @@ export default function Show({
                     <Errors errors={form.errors} />
                     <ContentFields
                         data={form.data}
+                        type={p.type}
                         change={form.setData}
                         disabled={form.processing}
                     />
@@ -326,6 +433,13 @@ export default function Show({
                                     summary: r.summary ?? '',
                                     body: r.body,
                                     public_byline: r.public_byline ?? '',
+                                    rights_status: r.rights_status,
+                                    rights_author: r.rights_author ?? '',
+                                    rights_holder: r.rights_holder ?? '',
+                                    rights_basis: r.rights_basis ?? '',
+                                    rights_reference: r.rights_reference ?? '',
+                                    rights_restrictions:
+                                        r.rights_restrictions ?? '',
                                     sources: r.sources.map((s) => ({
                                         title: s.title,
                                         url: s.url ?? '',
@@ -350,6 +464,131 @@ export default function Show({
                 canEdit={can.editMedia}
                 uploadLimitMb={uploadLimitMb}
             />
+            <section
+                className="space-y-4 rounded-xl border p-5"
+                aria-labelledby="rights-evidence-heading"
+            >
+                <h2
+                    id="rights-evidence-heading"
+                    className="text-xl font-semibold"
+                >
+                    Comprovantes de direitos autorais
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                    Arquivos privados ligados a esta revisão. Ao anexar nova
+                    versão, o histórico anterior é preservado.
+                </p>
+                {rightsEvidence.length ? (
+                    <ul className="space-y-2">
+                        {rightsEvidence.map((item) => (
+                            <li
+                                key={item.id}
+                                className="flex flex-wrap items-center justify-between gap-2 rounded border p-3 text-sm"
+                            >
+                                <span>
+                                    {item.name} ·{' '}
+                                    {item.status === 'current'
+                                        ? 'atual'
+                                        : 'substituído'}{' '}
+                                    · SHA-256 {item.sha256.slice(0, 12)}…
+                                </span>
+                                <a
+                                    className="underline"
+                                    href={`/administracao/editorial/comprovantes/${item.id}`}
+                                >
+                                    Baixar arquivo privado
+                                </a>
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p>Nenhum comprovante anexado.</p>
+                )}
+                {can.update && (
+                    <form
+                        className="flex flex-wrap items-end gap-3"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            evidenceForm.post(
+                                `/administracao/editorial/revisoes/${r.id}/comprovantes`,
+                                {
+                                    forceFormData: true,
+                                    onSuccess: () => evidenceForm.reset(),
+                                },
+                            );
+                        }}
+                    >
+                        <label className="flex-1 space-y-2">
+                            <span>PDF, JPG ou PNG — até 10 MB</span>
+                            <input
+                                className={fieldClass}
+                                required
+                                type="file"
+                                accept="application/pdf,image/jpeg,image/png"
+                                onChange={(event) =>
+                                    evidenceForm.setData(
+                                        'file',
+                                        event.target.files?.[0] ?? null,
+                                    )
+                                }
+                            />
+                        </label>
+                        {evidenceForm.errors.file && (
+                            <p role="alert">{evidenceForm.errors.file}</p>
+                        )}
+                        <button
+                            className={actionClass}
+                            disabled={
+                                evidenceForm.processing ||
+                                !evidenceForm.data.file
+                            }
+                        >
+                            {evidenceForm.processing
+                                ? 'Enviando…'
+                                : 'Anexar comprovante'}
+                        </button>
+                    </form>
+                )}
+            </section>
+            {can.manage && (p.status === 'published' || p.scheduled_for) && (
+                <form
+                    className="space-y-3 rounded-xl border border-destructive p-5"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        if (
+                            window.confirm(
+                                'Retirar esta publicação do ar e cancelar agendamentos por revogação ou dúvida de direitos?',
+                            )
+                        )
+                            revocation.post(
+                                `/administracao/editorial/publicacoes/${p.id}/revogar-direitos`,
+                            );
+                    }}
+                >
+                    <h2 className="font-semibold">Revogação de direitos</h2>
+                    <label className="block space-y-2">
+                        <span>Motivo e referência da decisão</span>
+                        <textarea
+                            required
+                            maxLength={2000}
+                            className={fieldClass}
+                            value={revocation.data.reason}
+                            onChange={(event) =>
+                                revocation.setData('reason', event.target.value)
+                            }
+                        />
+                    </label>
+                    {revocation.errors.reason && (
+                        <p role="alert">{revocation.errors.reason}</p>
+                    )}
+                    <button
+                        className={actionClass}
+                        disabled={revocation.processing}
+                    >
+                        Retirar do ar e registrar decisão
+                    </button>
+                </form>
+            )}
             {can.manage && (
                 <form
                     className="space-y-5 rounded-xl border p-6"

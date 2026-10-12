@@ -27,8 +27,8 @@ class ManageRoleAssignments
                 Gate::forUser($actor)->authorize('assign', $role);
             }
             $target = User::whereKey($target->id)->lockForUpdate()->firstOrFail();
-            if ($grant && $role->code === RoleCode::Administrator && $target->email_verified_at === null) {
-                throw ValidationException::withMessages(['user' => 'O administrador precisa ter e-mail verificado.']);
+            if ($grant && $role->code === RoleCode::Administrator && (! $target->is_active || $target->email_verified_at === null)) {
+                throw ValidationException::withMessages(['user' => 'O administrador precisa estar ativo e ter e-mail verificado.']);
             }
             $assigned = $target->roles()->whereKey($role->id)->exists();
             if ($assigned === $grant) {

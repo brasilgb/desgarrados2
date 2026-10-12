@@ -47,6 +47,15 @@ return [
             'report' => false,
         ],
 
+        'rights' => [
+            'driver' => 'local',
+            'root' => env('RIGHTS_EVIDENCE_ROOT') ?: storage_path('app/private/rights-evidence'),
+            'visibility' => 'private',
+            'serve' => false,
+            'throw' => true,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

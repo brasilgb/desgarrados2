@@ -44,8 +44,8 @@ yarn-error.log
 /opencode.json
 /opencode.jsonc
 
-# Projeto padronizado em npm (package-lock.json)
-/yarn.lock
+# Projeto padronizado em Yarn Classic (yarn.lock)
+/package-lock.json
 /pnpm-lock.yaml
 /bun.lock
 /bun.lockb

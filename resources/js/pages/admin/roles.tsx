@@ -110,6 +110,9 @@ export default function Roles({
         <>
             <Head title="Papéis e auditoria" />
             <div className="flex flex-col gap-6 p-6">
+                <a href="/administracao/usuarios" className="underline">
+                    ← Usuários e permissões
+                </a>
                 <h1 className="text-3xl font-semibold">Papéis e auditoria</h1>
                 <p className="max-w-2xl text-muted-foreground">
                     O usuário comum é o acesso base. Papéis adicionais são

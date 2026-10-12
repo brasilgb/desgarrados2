@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Session;
 
-test('sessions can be persisted and removed using MariaDB', function () {
+test('sessions can be persisted and removed using the configured database', function () {
     $handler = Session::driver('database')->getHandler();
     $sessionId = str_repeat('a', 40);
 
@@ -16,7 +16,7 @@ test('sessions can be persisted and removed using MariaDB', function () {
     $this->assertDatabaseMissing('sessions', ['id' => $sessionId]);
 });
 
-test('cache values and exclusive locks can be stored using MariaDB', function () {
+test('cache values and exclusive locks can be stored using the configured database', function () {
     $cache = Cache::store('database');
 
     $cache->put('foundation-check', 'ready', 60);
@@ -32,7 +32,7 @@ test('cache values and exclusive locks can be stored using MariaDB', function ()
     expect($lock->release())->toBeTrue();
 });
 
-test('queue payloads can be enqueued reserved and removed using MariaDB', function () {
+test('queue payloads can be enqueued reserved and removed using the configured database', function () {
     $queue = Queue::connection('database');
     $payload = '{"displayName":"foundation-check","job":"foundation-check","data":{}}';
 

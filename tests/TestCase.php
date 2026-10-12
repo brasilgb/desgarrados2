@@ -4,7 +4,7 @@ namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Laravel\Fortify\Features;
-use RuntimeException;
+use Tests\Support\TestDatabaseConnection;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -22,33 +22,17 @@ abstract class TestCase extends BaseTestCase
      */
     protected function setUpTraits(): array
     {
-        $this->ensureTestDatabaseIsDedicated();
+        TestDatabaseConnection::configure();
+        TestDatabaseConnection::verifyConnectedIdentity();
 
         return parent::setUpTraits();
     }
 
     /**
-     * Refuse to run against any database that is not dedicated to tests.
+     * Refuse to run against the configured main database or a non-local engine.
      */
     protected function ensureTestDatabaseIsDedicated(): void
     {
-        $connection = config('database.connections.'.config('database.default'));
-        $database = (string) ($connection['database'] ?? '');
-
-        if ($database !== 'desgarrados2_test') {
-            throw new RuntimeException("Refusing to run tests against non-test database [{$database}].");
-        }
-
-        if (config('database.default') !== 'mariadb'
-            || ($connection['driver'] ?? null) !== 'mariadb'
-            || ($connection['host'] ?? null) !== '127.0.0.1'
-            || (string) ($connection['port'] ?? '') !== '3306'
-            || ($connection['username'] ?? null) !== 'desgarrados'
-            || ! empty($connection['url'])
-            || ! empty($connection['unix_socket'])
-            || ! empty($connection['read'])
-            || ! empty($connection['write'])) {
-            throw new RuntimeException('Refusing to run tests with a connection outside the dedicated MariaDB configuration.');
-        }
+        TestDatabaseConnection::assertSafe();
     }
 }

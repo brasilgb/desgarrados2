@@ -12,6 +12,16 @@
         'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
+    --font-editorial: Georgia, 'Times New Roman', serif;
+
+    --color-public-paper: var(--public-paper);
+    --color-public-surface: var(--public-surface);
+    --color-public-ink: var(--public-ink);
+    --color-public-muted: var(--public-muted);
+    --color-public-mate: var(--public-mate);
+    --color-public-leather: var(--public-leather);
+    --color-public-wine: var(--public-wine);
+    --color-public-rule: var(--public-rule);
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -62,6 +72,15 @@
 }
 
 :root {
+    --public-paper: #f4f0e6;
+    --public-surface: #fffdf8;
+    --public-ink: #263f35;
+    --public-muted: #526158;
+    --public-mate: #263f35;
+    --public-leather: #8c513b;
+    --public-wine: #6d3542;
+    --public-rule: #d5cdbd;
+
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -98,6 +117,15 @@
 }
 
 .dark {
+    --public-paper: #17241f;
+    --public-surface: #202f28;
+    --public-ink: #e5e9dd;
+    --public-muted: #c0c9bd;
+    --public-mate: #e5e9dd;
+    --public-leather: #e2aa88;
+    --public-wine: #e1a5ae;
+    --public-rule: #3a4941;
+
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.145 0 0);
@@ -139,5 +167,35 @@
 
     body {
         @apply bg-background text-foreground;
+    }
+}
+
+@layer components {
+    .public-site {
+        @apply min-h-screen bg-public-paper text-public-ink;
+    }
+
+    .public-content {
+        @apply mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-12;
+    }
+
+    .public-eyebrow {
+        @apply text-xs font-semibold tracking-[0.18em] text-public-leather uppercase;
+    }
+
+    .public-focus {
+        @apply rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-public-wine;
+    }
+
+    .public-primary-link {
+        @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-public-mate px-5 py-2.5 font-semibold text-public-paper transition-colors hover:bg-public-leather hover:text-white;
+    }
+
+    .public-secondary-link {
+        @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-public-rule px-5 py-2.5 font-semibold text-public-ink transition-colors hover:border-public-leather hover:text-public-leather;
+    }
+
+    .public-section {
+        @apply border-t border-public-rule pt-10 sm:pt-14;
     }
 }

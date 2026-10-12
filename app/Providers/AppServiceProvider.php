@@ -32,7 +32,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
-        Gate::define('access-administration', fn (User $user): bool => $user->email_verified_at !== null
+        Gate::define('access-administration', fn (User $user): bool => $user->is_active && $user->email_verified_at !== null
             && $user->roles()->whereIn('code', array_map(fn (RoleCode $role): string => $role->value, RoleCode::cases()))->exists());
         Gate::define('manage-territory', fn (User $user): bool => $user->email_verified_at !== null
             && $user->hasRole(RoleCode::Administrator));
@@ -56,7 +56,7 @@ class AppServiceProvider extends ServiceProvider
         );
 
         Password::defaults(fn (): ?Password => app()->isProduction()
-            ? Password::min(12)
+            ? Password::min(8)
                 ->mixedCase()
                 ->letters()
                 ->numbers()

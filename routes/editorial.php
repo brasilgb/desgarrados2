@@ -3,8 +3,11 @@
 use App\Http\Controllers\Editorial\MediaController;
 use App\Http\Controllers\Editorial\MediaFileController;
 use App\Http\Controllers\Editorial\PublicationController;
+use App\Http\Controllers\Editorial\PublicationFeatureController;
 use App\Http\Controllers\Editorial\PublicPublicationController;
+use App\Http\Controllers\Editorial\RegionController;
 use App\Http\Controllers\Editorial\RevisionMediaController;
+use App\Http\Controllers\Editorial\RightsEvidenceController;
 use App\Http\Controllers\Editorial\TaxonomyController;
 use App\Http\Middleware\EditorialNoIndex;
 use Illuminate\Support\Facades\Route;
@@ -20,10 +23,19 @@ Route::middleware([EditorialNoIndex::class, 'auth', 'verified', 'can:access-admi
     Route::get('/taxonomia/{kind}', [TaxonomyController::class, 'index'])->name('taxonomy');
     Route::post('/taxonomia/{kind}/{id?}', [TaxonomyController::class, 'save'])->name('taxonomy.save');
     Route::delete('/taxonomia/{kind}/{id}', [TaxonomyController::class, 'delete'])->name('taxonomy.delete');
+    Route::get('/regioes', [RegionController::class, 'index'])->name('regions');
+    Route::post('/regioes/{region?}', [RegionController::class, 'save'])->name('regions.save');
+    Route::get('/destaques', [PublicationFeatureController::class, 'index'])->name('features');
+    Route::post('/destaques/{feature?}', [PublicationFeatureController::class, 'save'])->name('features.save');
+    Route::delete('/destaques/{feature}', [PublicationFeatureController::class, 'delete'])->name('features.delete');
     Route::get('/publicacoes/{publication}', [PublicationController::class, 'show'])->name('show');
+    Route::get('/publicacoes/{publication}/revisoes/{revision}/previa', [PublicationController::class, 'preview'])->name('preview');
     Route::post('/publicacoes/{publication}/revisoes', [PublicationController::class, 'revision'])->name('revision');
     Route::post('/publicacoes/{publication}/transicao', [PublicationController::class, 'transition'])->name('transition');
     Route::patch('/publicacoes/{publication}/metadados', [PublicationController::class, 'metadata'])->name('metadata');
+    Route::post('/publicacoes/{publication}/revogar-direitos', [PublicationController::class, 'revokeRights'])->name('rights.revoke');
+    Route::post('/revisoes/{revision}/comprovantes', [RightsEvidenceController::class, 'store'])->name('rights-evidence.store');
+    Route::get('/comprovantes/{evidence}', [RightsEvidenceController::class, 'download'])->name('rights-evidence.download');
 });
 
 // Derivatives only; the controller decides public or private access on every request.

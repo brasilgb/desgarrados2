@@ -14,6 +14,17 @@ export type Content = {
     summary: string;
     body: string;
     public_byline: string;
+    rights_status:
+        | 'original'
+        | 'authorized'
+        | 'public_domain'
+        | 'licensed'
+        | 'unverified';
+    rights_author: string;
+    rights_holder: string;
+    rights_basis: string;
+    rights_reference: string;
+    rights_restrictions: string;
     sources: Source[];
 };
 export type MediaImage = {

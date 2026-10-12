@@ -1,6 +1,6 @@
 <?php
 
-// Standalone integration check for media under real concurrency: independent processes, committed rows, MariaDB locks.
+// Standalone integration check for media under real concurrency: independent processes and committed SQL locks.
 
 use App\Actions\Editorial\EditorialWorkflow;
 use App\Actions\Editorial\MediaLibrary;
@@ -17,17 +17,14 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Tests\Support\TestDatabaseConnection;
 
 require dirname(__DIR__, 2).'/vendor/autoload.php';
 $app = require dirname(__DIR__, 2).'/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 
-$connection = config('database.connections.'.config('database.default'));
-if (config('database.default') !== 'mariadb' || $connection['database'] !== 'desgarrados2_test'
-    || $connection['host'] !== '127.0.0.1' || $connection['username'] !== 'desgarrados'
-    || ! empty($connection['url']) || ! empty($connection['unix_socket']) || ! empty($connection['read']) || ! empty($connection['write'])) {
-    throw new RuntimeException('Media concurrency checks require the dedicated local test database.');
-}
+TestDatabaseConnection::configure();
+TestDatabaseConnection::verifyConnectedIdentity();
 if (! extension_loaded('pcntl')) {
     throw new RuntimeException('pcntl is required.');
 }

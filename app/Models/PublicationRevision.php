@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\RevisionStatus;
+use App\Enums\TextRightsStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -25,7 +26,8 @@ class PublicationRevision extends Model
 
     protected function casts(): array
     {
-        return ['status' => RevisionStatus::class, 'submitted_at' => 'datetime', 'reviewed_at' => 'datetime'];
+        return ['status' => RevisionStatus::class, 'rights_status' => TextRightsStatus::class,
+            'submitted_at' => 'datetime', 'reviewed_at' => 'datetime'];
     }
 
     /** @return BelongsTo<Publication, $this> */
@@ -38,6 +40,12 @@ class PublicationRevision extends Model
     public function sources(): HasMany
     {
         return $this->hasMany(RevisionSource::class);
+    }
+
+    /** @return HasMany<RevisionRightsEvidence, $this> */
+    public function rightsEvidence(): HasMany
+    {
+        return $this->hasMany(RevisionRightsEvidence::class, 'publication_revision_id')->latest('id');
     }
 
     /** @return HasMany<RevisionMedia, $this> */

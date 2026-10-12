@@ -34,6 +34,7 @@ class MediaFileController extends Controller
             'Content-Disposition' => 'inline; filename="'.$variant.'.webp"'], $public, null, true);
         if ($public) {
             $response->setMaxAge((int) config('media.public_max_age'));
+            $response->headers->addCacheControlDirective('must-revalidate');
         } else {
             $response->setPrivate();
             $response->headers->addCacheControlDirective('no-store');

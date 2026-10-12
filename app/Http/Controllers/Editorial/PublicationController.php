@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Editorial;
 
 use App\Actions\Editorial\EditorialWorkflow;
+use App\Actions\Editorial\RevokePublicationRights;
+use App\Editorial\PublicEditorialPresenter;
 use App\Enums\MediaRights;
 use App\Enums\PublicationStatus;
 use App\Enums\PublicationType;
@@ -76,17 +78,23 @@ class PublicationController extends Controller
     public function show(Request $request, Publication $publication): Response
     {
         Gate::authorize('view', $publication);
-        $publication->load(['currentSlug', 'category', 'municipality', 'tags', 'regions']);
+        $publication->load(['currentSlug', 'author:id,name', 'category', 'municipality', 'tags', 'regions']);
         $revision = $request->filled('revision') ? $publication->revisions()->findOrFail($request->integer('revision')) : $publication->revisions()->latest('version')->firstOrFail();
-        $revision->load('sources');
+        $revision->load(['sources', 'rightsEvidence']);
 
         return Inertia::render('editorial/show', [
             'publication' => ['id' => $publication->id, 'status' => $publication->status->value,
                 'type' => $publication->type->value, 'slug' => $publication->currentSlug?->slug,
+                'author' => $publication->author?->only(['id', 'name']),
                 'scheduled_for' => $publication->scheduled_for?->toIso8601String(), 'published_revision_id' => $publication->published_revision_id,
                 'municipality' => $publication->municipality?->only(['id', 'name']), 'category' => $publication->category?->only(['id', 'name']),
                 'tags' => $publication->tags->map->only(['id', 'name']), 'regions' => $publication->regions->map->only(['id', 'name'])],
-            'revision' => $revision->only(['id', 'version', 'status', 'title', 'summary', 'body', 'public_byline', 'review_note', 'submitted_at', 'reviewed_at', 'sources']),
+            'revision' => $revision->only(['id', 'version', 'status', 'title', 'summary', 'body', 'public_byline', 'rights_status', 'rights_author', 'rights_holder', 'rights_basis', 'rights_reference', 'rights_restrictions', 'review_note', 'submitted_at', 'reviewed_at', 'sources']),
+            'rightsEvidence' => $revision->rightsEvidence->map(fn ($evidence) => [
+                'id' => $evidence->id, 'name' => $evidence->original_name, 'mime' => $evidence->mime_type,
+                'size' => $evidence->size_bytes, 'sha256' => $evidence->sha256, 'status' => $evidence->status,
+                'created_at' => $evidence->created_at?->toIso8601String(),
+            ]),
             'revisions' => $publication->revisions()->latest('version')->paginate(15)->withQueryString()->through(fn (PublicationRevision $r) => $r->only(['id', 'version', 'status', 'title'])),
             'permissions' => ['manage' => Gate::allows('publish', $publication), 'submit' => Gate::allows('submit', $revision),
                 'review' => Gate::allows('review', $revision), 'update' => Gate::allows('update', $publication),
@@ -97,6 +105,19 @@ class PublicationController extends Controller
             'rightsTypes' => array_column(MediaRights::cases(), 'value'),
             'uploadLimitMb' => (int) floor(min(config('media.max_upload_kb') * 1024, $this->phpUploadLimit()) / 1024 / 1024),
         ]);
+    }
+
+    public function preview(Publication $publication, PublicationRevision $revision, PublicEditorialPresenter $presenter): Response
+    {
+        Gate::authorize('view', $publication);
+        abort_unless($revision->publication_id === $publication->id, 404);
+        $publication->load(['currentSlug', 'category', 'municipality', 'tags', 'regions']);
+        $revision->load(['sources', 'media.asset']);
+        $publication->setRelation('publishedRevision', $revision);
+        $publication->setAttribute('published_at', $publication->published_at ?? now());
+        $story = $presenter->story($publication, true);
+
+        return Inertia::render('editorial/publication', ['publication' => $story, 'canonical' => '', 'ogImage' => null, 'preview' => true]);
     }
 
     /** @return array<string, mixed> */
@@ -162,6 +183,14 @@ class PublicationController extends Controller
         }
 
         return back();
+    }
+
+    public function revokeRights(Request $request, Publication $publication, RevokePublicationRights $revocation): RedirectResponse
+    {
+        $data = $request->validate(['reason' => ['required', 'string', 'max:2000']]);
+        $revocation->handle($this->actor($request), $publication, $data['reason']);
+
+        return to_route('editorial.show', $publication)->with('status', 'Publicação retirada do ar e decisão auditada.');
     }
 
     public function metadata(Request $request, Publication $publication, EditorialWorkflow $workflow): RedirectResponse

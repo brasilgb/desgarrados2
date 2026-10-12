@@ -8,31 +8,28 @@ Pré-condições:
 
 - migrations aplicadas;
 - catálogo de papéis presente (`php artisan db:seed --class=RoleSeeder`, idempotente);
-- **conta já cadastrada pelo próprio titular, com e-mail verificado**. Em produção isso exige envio de e-mail configurado (§6).
+- titular designado presente para a operação, com controle do endereço de e-mail confirmado pelo operador;
+- backup recente verificado e acesso interativo ao ambiente operacional autorizado.
 
-Nenhum comando cria contas, senhas ou privilégios automaticamente.
+O comando `php artisan desgarrados:admin:create` cria a conta e concede somente o papel Administrador, em transação auditada. Permanece bloqueado por padrão. Habilite `DESGARRADOS_ADMIN_BOOTSTRAP_ENABLED=true` apenas no ambiente autorizado durante a janela de execução; nunca coloque senha em argumento, log, ticket ou histórico do shell. A confirmação interativa atesta que o titular controla o e-mail e foi designado.
 
-1. Identificar o ID da conta escolhida (sem expor dados em logs compartilhados):
-
-    ```bash
-    docker compose exec desgarrados php artisan tinker --execute='echo App\Models\User::where("email", "<email-escolhido>")->value("id");'
-    ```
-
-2. Conceder o papel Administrador com justificativa. O modo `--bootstrap` só funciona enquanto não houver administrador e só concede Administrador:
+1. Na raiz da release autorizada, habilitar temporariamente a variável no ambiente protegido e atualizar o cache de configuração pelo processo da aplicação.
 
     ```bash
-    docker compose exec desgarrados php artisan roles:grant <id> administrator --bootstrap --reason="Primeiro administrador designado por <responsável> em <data>"
+    php artisan desgarrados:admin:create
     ```
 
-3. Se a mesma pessoa também for revisar e publicar, conceder Editor em separado, agora como ator auditado:
+2. O comando solicita interativamente nome, e-mail, senha duas vezes e justificativa; valida senha forte com mínimo de 8 caracteres e e-mail único, e recusa se já houver administrador.
+
+3. Conferir a concessão inicial em `/administracao/papeis` e `role_assignment_audits`. Se a pessoa também for revisar/publicar, conceder Editor em separado, com ator e justificativa auditados:
 
     ```bash
-    docker compose exec desgarrados php artisan roles:grant <id> editor --actor=<id> --reason="Acúmulo de Editor autorizado por <responsável>"
+    php artisan roles:grant <id> editor --actor=<id> --reason="Acúmulo de Editor autorizado por <responsável>"
     ```
 
-4. Conferir em `/administracao/papeis` e na tabela `role_assignment_audits`.
+4. Desabilitar imediatamente `DESGARRADOS_ADMIN_BOOTSTRAP_ENABLED` e atualizar o cache/configuração do processo.
 
-Recusas esperadas: conta inexistente, e-mail não verificado, justificativa ausente, segundo bootstrap e bootstrap de outro papel. A revogação, a exclusão ou a perda de verificação do último administrador verificado é bloqueada.
+Recusas esperadas: janela não habilitada, driver que não seja MySQL/MariaDB, nome/e-mail inválido ou duplicado, senha fraca/não confirmada, confirmação operacional ausente, catálogo de papéis indisponível ou segundo bootstrap. Senhas não aparecem nos prompts nem no resumo. Revogar, desativar, excluir ou remover verificação do último administrador ativo confirmado é bloqueado.
 
 Matriz:
 
@@ -54,7 +51,7 @@ A proposta está em `deploy/compose.desgarrados2.yml`, como **override** do `doc
 
 Decisões:
 
-- **MariaDB dedicado** em vez do MySQL 8.4 compartilhado. As migrations não foram adaptadas a MySQL. O banco MySQL `desgarrados` e o usuário `desgarrados_user` permanecem intactos até a auditoria (§3).
+- **MariaDB dedicado** continua sendo a recomendação operacional. As migrations agora evitam nomes de banco codificados e usam recursos MySQL/MariaDB (chaves estrangeiras, checks e colunas geradas); foram executadas nesta rodada em MariaDB 11.8.6 local. Ainda é necessário validar a versão MySQL/MariaDB exata do destino em schema descartável antes de planejar a implantação. O banco MySQL `desgarrados` e o usuário `desgarrados_user` permanecem intocados até auditoria e autorização (§3).
 - **Ambiente explícito**: sem `env_file: .env.example` e sem a âncora `x-laravel-environment`, que injetava no Desgarrados o `APP_URL`/banco do VetorOS e a chave do WAHA.
 - `depends_on` com `service_started`: uma falha no banco do Desgarrados não impede o Nginx (que depende de `desgarrados`) de subir os outros sites. Se o banco cair, o Desgarrados responde com erro, mas os demais sites continuam.
 - Health check do scheduler **sem `--strict`**. Com `--strict`, um aviso de SSR fora (que não afeta o scheduler) ou o primeiro minuto sem heartbeat marcariam o contêiner como unhealthy. O modo normal falha só com banco fora, publicador parado há mais de 5 min ou agendamento vencido. No Compose puro, "unhealthy" sinaliza mas não reinicia; o reinício ocorre quando o processo termina.
@@ -97,6 +94,13 @@ Backup do MariaDB (não existe política hoje; definir antes de abrir ao públic
 ```bash
 docker compose exec -T desgarrados-mariadb sh -c 'mariadb-dump -uroot -p"$MARIADB_ROOT_PASSWORD" --single-transaction --routines desgarrados2' | gzip > backups/desgarrados2-$(date +%Y%m%d%H%M).sql.gz
 ```
+
+### Ensaio de migrations e restauração
+
+1. Registrar versão/engine do banco-alvo e conferir espaço, permissões, charset e collation. Executar primeiro `php artisan migrate:status` e `php artisan migrate --pretend` apontando apenas para um schema descartável local criado com a mesma versão do destino.
+2. Fazer dump consistente antes de qualquer DDL, guardar cópia criptografada fora do host e verificar checksum/tamanho. Ensaiar a restauração do dump em outro schema isolado e comparar tabelas/contagens e uma leitura autenticada da aplicação.
+3. Executar migrations em schema vazio e incremental com dados sintéticos no MariaDB alvo do ensaio; conferir `CHECK`, colunas geradas/índices, FKs e operações concorrentes. O MySQL não foi executado nesta homologação; não declarar compatibilidade com versão não ensaiada.
+4. Antes de qualquer operação real, exigir autorização explícita, janela, snapshot/dump verificado, plano de retorno e monitoramento. Não restaurar sobre o banco compartilhado. Para rollback após gravação de documentos/dados novos, preferir correção forward; `migrate:rollback` pode descartar os novos metadados e não substitui backup restaurável.
 
 ## 4. Comportamento em falha do SSR
 

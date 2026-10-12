@@ -21,18 +21,39 @@ export function Errors({ errors }: { errors: Record<string, string> }) {
 export function ContentFields({
     data,
     change,
+    type,
     disabled = false,
 }: {
     data: Content;
     change: <K extends keyof Content>(key: K, value: Content[K]) => void;
+    type: string;
     disabled?: boolean;
 }) {
     const id = useId();
+    const guidance: Record<string, string> = {
+        article:
+            'Apresente o tema com contexto e organize as informações por tópicos ou parágrafos.',
+        news: 'Priorize os fatos, as datas e as fontes que permitem confirmar as informações.',
+        chronicle:
+            'Uma cena, voz ou lembrança pode conduzir o texto; identifique pessoas e lugares com contexto.',
+        causo: 'Conte a situação, quem narra e onde acontece. Preserve a oralidade sem expor dados pessoais sem autorização.',
+        cultural_history:
+            'Registre práticas, períodos, lugares e fontes; diferencie memória oral de informação documentada.',
+        personal_story:
+            'Organize a narrativa pela experiência de quem conta e confirme autorização para nomes e detalhes pessoais.',
+        migration_story:
+            'Inclua os lugares de partida e chegada e, se possível, referências temporais da travessia.',
+        memory: 'Para poema, use uma linha por verso e deixe uma linha em branco entre estrofes. Essas quebras serão preservadas na leitura pública.',
+    };
     return (
         <fieldset disabled={disabled} className="space-y-5">
             <legend className="mb-4 font-semibold">
                 Texto e fontes desta versão
             </legend>
+            <p className="rounded-lg bg-muted p-3 text-sm" role="note">
+                {guidance[type] ??
+                    'Inclua contexto, autoria e referências úteis para a edição.'}
+            </p>
             {(['title', 'summary', 'public_byline'] as const).map((key) => (
                 <label
                     key={key}
@@ -65,104 +86,242 @@ export function ContentFields({
                 </label>
             ))}
             <label className="block space-y-2" htmlFor={`${id}-body`}>
-                <span>
-                    Texto simples — separe parágrafos com uma linha em branco
-                </span>
+                <span>Texto da publicação</span>
                 <textarea
                     id={`${id}-body`}
                     className={fieldClass}
                     rows={14}
                     required
+                    aria-describedby={`${id}-body-hint`}
                     value={data.body}
                     onChange={(e) => change('body', e.target.value)}
                 />
+                <span
+                    id={`${id}-body-hint`}
+                    className="block text-sm text-muted-foreground"
+                >
+                    A formatação digitada é preservada. Em prosa, separe
+                    parágrafos com uma linha em branco; em versos, use uma linha
+                    por verso e uma linha vazia entre estrofes.
+                </span>
             </label>
-            <div className="space-y-4">
-                <h3 className="font-medium">Fontes editoriais</h3>
-                {data.sources.map((source, index) => (
-                    <fieldset
-                        key={index}
-                        className="space-y-3 rounded-lg border p-4"
-                    >
-                        <legend>Fonte {index + 1}</legend>
-                        {(
-                            [
-                                'title',
-                                'url',
-                                'attribution',
-                                'accessed_at',
-                            ] as const
-                        ).map((key) => (
-                            <label key={key} className="block space-y-1">
-                                <span>
-                                    {
-                                        {
-                                            title: 'Título',
-                                            url: 'URL opcional',
-                                            attribution: 'Atribuição',
-                                            accessed_at: 'Data de acesso',
-                                        }[key]
-                                    }
-                                </span>
-                                <input
-                                    className={fieldClass}
-                                    type={
-                                        key === 'accessed_at'
-                                            ? 'date'
-                                            : key === 'url'
-                                              ? 'url'
-                                              : 'text'
-                                    }
-                                    required={key === 'title'}
-                                    value={source[key] ?? ''}
-                                    onChange={(e) =>
-                                        change(
-                                            'sources',
-                                            data.sources.map((item, i) =>
-                                                i === index
-                                                    ? {
-                                                          ...item,
-                                                          [key]: e.target.value,
-                                                      }
-                                                    : item,
-                                            ),
-                                        )
-                                    }
-                                />
-                            </label>
-                        ))}
-                        <button
-                            type="button"
-                            className={actionClass}
-                            onClick={() =>
+            <details className="rounded-lg border p-4" open>
+                <summary className="cursor-pointer font-medium">
+                    Autoria e direitos de uso
+                </summary>
+                <p className="my-3 text-sm text-muted-foreground">
+                    A publicação fica bloqueada até haver comprovação
+                    suficiente. Crédito ou fonte, por si só, não concede direito
+                    de uso.
+                </p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="block space-y-2">
+                        <span>Situação autoral</span>
+                        <select
+                            className={fieldClass}
+                            value={data.rights_status}
+                            onChange={(e) =>
                                 change(
-                                    'sources',
-                                    data.sources.filter((_, i) => i !== index),
+                                    'rights_status',
+                                    e.target.value as Content['rights_status'],
                                 )
                             }
                         >
-                            Remover fonte
-                        </button>
-                    </fieldset>
-                ))}
-                <button
-                    type="button"
-                    className={actionClass}
-                    onClick={() =>
-                        change('sources', [
-                            ...data.sources,
-                            {
-                                title: '',
-                                url: '',
-                                attribution: '',
-                                accessed_at: '',
-                            },
-                        ])
-                    }
-                >
-                    Adicionar fonte
-                </button>
-            </div>
+                            <option value="unverified">
+                                Ainda não comprovada
+                            </option>
+                            <option value="original">
+                                Texto original do próprio autor
+                            </option>
+                            <option value="authorized">
+                                Autorizado pelo titular
+                            </option>
+                            <option value="public_domain">
+                                Domínio público
+                            </option>
+                            <option value="licensed">Licenciado</option>
+                        </select>
+                    </label>
+                    {data.rights_status === 'original' ? (
+                        <label className="block space-y-2">
+                            <span>Autor da obra</span>
+                            <input
+                                className={fieldClass}
+                                maxLength={200}
+                                required
+                                value={data.rights_author}
+                                onChange={(e) =>
+                                    change('rights_author', e.target.value)
+                                }
+                            />
+                        </label>
+                    ) : data.rights_status !== 'unverified' ? (
+                        <label className="block space-y-2">
+                            <span>Titular dos direitos (se conhecido)</span>
+                            <input
+                                className={fieldClass}
+                                maxLength={200}
+                                required={
+                                    data.rights_status === 'authorized' ||
+                                    data.rights_status === 'licensed'
+                                }
+                                value={data.rights_holder}
+                                onChange={(e) =>
+                                    change('rights_holder', e.target.value)
+                                }
+                            />
+                        </label>
+                    ) : null}
+                    {data.rights_status !== 'original' &&
+                        data.rights_status !== 'unverified' && (
+                            <>
+                                <label className="block space-y-2">
+                                    <span>Fundamento de uso</span>
+                                    <input
+                                        className={fieldClass}
+                                        maxLength={500}
+                                        required
+                                        value={data.rights_basis}
+                                        onChange={(e) =>
+                                            change(
+                                                'rights_basis',
+                                                e.target.value,
+                                            )
+                                        }
+                                        placeholder="Ex.: autorização assinada em 10/10/2026"
+                                    />
+                                </label>
+                                <label className="block space-y-2">
+                                    <span>
+                                        Referência da autorização/licença ou
+                                        fonte da obra
+                                    </span>
+                                    <input
+                                        className={fieldClass}
+                                        maxLength={2048}
+                                        required
+                                        value={data.rights_reference}
+                                        onChange={(e) =>
+                                            change(
+                                                'rights_reference',
+                                                e.target.value,
+                                            )
+                                        }
+                                    />
+                                </label>
+                            </>
+                        )}
+                    <label className="block space-y-2">
+                        <span>Restrições de uso (opcional)</span>
+                        <textarea
+                            className={fieldClass}
+                            maxLength={5000}
+                            value={data.rights_restrictions}
+                            onChange={(e) =>
+                                change('rights_restrictions', e.target.value)
+                            }
+                        />
+                    </label>
+                </div>
+            </details>
+            <details className="rounded-lg border p-4">
+                <summary className="cursor-pointer font-medium">
+                    Fontes editoriais ({data.sources.length})
+                </summary>
+                <p className="my-3 text-sm text-muted-foreground">
+                    Registre de onde vieram as informações. Para obras de
+                    terceiros, crédito sozinho não substitui autorização ou
+                    licença de uso.
+                </p>
+                <div className="space-y-4">
+                    {data.sources.map((source, index) => (
+                        <fieldset
+                            key={index}
+                            className="space-y-3 rounded-lg border p-4"
+                        >
+                            <legend>Fonte {index + 1}</legend>
+                            {(
+                                [
+                                    'title',
+                                    'url',
+                                    'attribution',
+                                    'accessed_at',
+                                ] as const
+                            ).map((key) => (
+                                <label key={key} className="block space-y-1">
+                                    <span>
+                                        {
+                                            {
+                                                title: 'Título',
+                                                url: 'URL opcional',
+                                                attribution: 'Atribuição',
+                                                accessed_at: 'Data de acesso',
+                                            }[key]
+                                        }
+                                    </span>
+                                    <input
+                                        className={fieldClass}
+                                        type={
+                                            key === 'accessed_at'
+                                                ? 'date'
+                                                : key === 'url'
+                                                  ? 'url'
+                                                  : 'text'
+                                        }
+                                        required={key === 'title'}
+                                        value={source[key] ?? ''}
+                                        onChange={(e) =>
+                                            change(
+                                                'sources',
+                                                data.sources.map((item, i) =>
+                                                    i === index
+                                                        ? {
+                                                              ...item,
+                                                              [key]: e.target
+                                                                  .value,
+                                                          }
+                                                        : item,
+                                                ),
+                                            )
+                                        }
+                                    />
+                                </label>
+                            ))}
+                            <button
+                                type="button"
+                                className={actionClass}
+                                onClick={() =>
+                                    change(
+                                        'sources',
+                                        data.sources.filter(
+                                            (_, i) => i !== index,
+                                        ),
+                                    )
+                                }
+                            >
+                                Remover fonte
+                            </button>
+                        </fieldset>
+                    ))}
+                    <button
+                        type="button"
+                        className={actionClass}
+                        onClick={() =>
+                            change('sources', [
+                                ...data.sources,
+                                {
+                                    title: '',
+                                    url: '',
+                                    attribution: '',
+                                    accessed_at: '',
+                                },
+                            ])
+                        }
+                    >
+                        Adicionar fonte
+                    </button>
+                </div>
+            </details>
         </fieldset>
     );
 }

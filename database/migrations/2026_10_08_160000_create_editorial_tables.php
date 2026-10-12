@@ -2,16 +2,12 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        if (DB::connection()->getDriverName() !== 'mariadb' || ! in_array(DB::connection()->getDatabaseName(), ['desgarrados2', 'desgarrados2_test'], true)) {
-            throw new RuntimeException('Editorial migrations require the dedicated MariaDB databases.');
-        }
         foreach (['categories', 'tags'] as $table) {
             Schema::create($table, function (Blueprint $t) {
                 $t->id();

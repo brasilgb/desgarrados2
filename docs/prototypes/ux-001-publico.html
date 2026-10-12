@@ -1,0 +1,770 @@
+<!doctype html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="color-scheme" content="light dark" />
+        <title>Protótipo público — Desgarrados</title>
+        <style>
+            :root {
+                font-family:
+                    system-ui,
+                    -apple-system,
+                    'Segoe UI',
+                    sans-serif;
+                color: #263f35;
+                background: #f4f0e6;
+                --paper: #f4f0e6;
+                --surface: #fffdf8;
+                --mate: #263f35;
+                --leather: #8c513b;
+                --wine: #6d3542;
+                --muted: #5e665f;
+                --rule: #d5cdbd;
+                --serif: Georgia, 'Times New Roman', serif;
+                --measure: 1200px;
+                --gutter: clamp(1.25rem, 5vw, 4rem);
+            }
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                margin: 0;
+                background: var(--paper);
+                color: var(--mate);
+                line-height: 1.55;
+            }
+            .site {
+                min-height: 100vh;
+                background: var(--paper);
+                color: var(--mate);
+            }
+            .sr-only {
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                padding: 0;
+                margin: -1px;
+                overflow: hidden;
+                clip: rect(0, 0, 0, 0);
+                white-space: nowrap;
+                border: 0;
+            }
+            a {
+                color: inherit;
+                text-underline-offset: 0.22em;
+            }
+            a:focus-visible,
+            button:focus-visible,
+            input:focus-visible {
+                outline: 3px solid var(--wine);
+                outline-offset: 3px;
+            }
+            .wrap {
+                max-width: var(--measure);
+                margin: auto;
+                padding-inline: var(--gutter);
+            }
+            .demo {
+                position: sticky;
+                top: 0;
+                z-index: 4;
+                background: var(--wine);
+                color: white;
+                text-align: center;
+                padding: 0.4rem 1rem;
+                font-size: 0.78rem;
+                letter-spacing: 0.06em;
+            }
+            .mast {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 2rem;
+                padding-block: 1.1rem;
+                border-bottom: 1px solid var(--rule);
+            }
+            .brand {
+                font: 700 1.4rem var(--serif);
+                text-decoration: none;
+                letter-spacing: -0.04em;
+            }
+            .brand span {
+                color: var(--leather);
+            }
+            nav {
+                display: flex;
+                align-items: center;
+                gap: 1.5rem;
+                font-size: 0.92rem;
+            }
+            nav a {
+                text-decoration: none;
+            }
+            .search {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                border: 1px solid var(--rule);
+                border-radius: 99px;
+                padding: 0.45rem 0.8rem;
+                background: var(--surface);
+            }
+            .search input {
+                width: 9rem;
+                border: 0;
+                background: transparent;
+                color: inherit;
+                font: inherit;
+            }
+            .toggle {
+                border: 1px solid var(--rule);
+                border-radius: 99px;
+                background: transparent;
+                color: inherit;
+                padding: 0.55rem 0.8rem;
+                cursor: pointer;
+            }
+            .intro {
+                padding-block: clamp(3rem, 8vw, 7rem) 3rem;
+                display: grid;
+                grid-template-columns: 1fr minmax(16rem, 0.5fr);
+                align-items: end;
+                gap: 2rem;
+            }
+            .eyebrow {
+                text-transform: uppercase;
+                letter-spacing: 0.16em;
+                font-size: 0.72rem;
+                font-weight: 700;
+                color: var(--leather);
+            }
+            h1,
+            h2,
+            h3,
+            p {
+                margin-top: 0;
+            }
+            h1,
+            h2,
+            h3 {
+                font-family: var(--serif);
+                font-weight: 500;
+                line-height: 1.08;
+                letter-spacing: -0.03em;
+            }
+            h1 {
+                font-size: clamp(3rem, 7vw, 6.2rem);
+                max-width: 12ch;
+                margin: 0.8rem 0;
+            }
+            h2 {
+                font-size: clamp(2rem, 4vw, 3.2rem);
+            }
+            h3 {
+                font-size: 1.7rem;
+            }
+            .intro p {
+                max-width: 42rem;
+                font-size: 1.15rem;
+                color: var(--muted);
+            }
+            .search-large {
+                display: flex;
+                gap: 0.75rem;
+                align-items: center;
+                background: var(--surface);
+                border: 1px solid var(--rule);
+                padding: 0.65rem 0.7rem 0.65rem 1rem;
+                border-radius: 0.5rem;
+            }
+            .search-large input {
+                min-width: 0;
+                flex: 1;
+                border: 0;
+                background: transparent;
+                color: inherit;
+                font: inherit;
+            }
+            .button {
+                display: inline-flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 44px;
+                padding: 0.65rem 1rem;
+                border-radius: 99px;
+                background: var(--mate);
+                color: var(--paper);
+                text-decoration: none;
+                border: 1px solid var(--mate);
+                font-weight: 650;
+            }
+            .button.secondary {
+                background: transparent;
+                color: inherit;
+            }
+            .lead {
+                display: grid;
+                grid-template-columns: 1.2fr 0.8fr;
+                min-height: 340px;
+                border-block: 1px solid var(--rule);
+                margin-block: 2rem 5rem;
+            }
+            .photo {
+                display: grid;
+                place-items: center;
+                min-height: 300px;
+                background: linear-gradient(
+                    135deg,
+                    #d9cdb5,
+                    #b7b39d 48%,
+                    #7d8a73
+                );
+                color: #283d32;
+                text-align: center;
+                padding: 1rem;
+            }
+            .photo small {
+                display: block;
+                max-width: 22rem;
+                background: #f4f0e6dd;
+                padding: 0.5rem;
+            }
+            .lead-copy {
+                align-self: center;
+                padding: clamp(1.5rem, 4vw, 3.5rem);
+            }
+            .lead-copy h2 {
+                font-size: clamp(2rem, 4.2vw, 3.8rem);
+            }
+            .meta {
+                font-size: 0.85rem;
+                color: var(--muted);
+            }
+            .section {
+                padding-block: 3.5rem;
+                border-top: 1px solid var(--rule);
+            }
+            .section-head {
+                display: flex;
+                align-items: end;
+                justify-content: space-between;
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+            }
+            .section-head h2 {
+                margin: 0;
+            }
+            .places {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1px;
+                background: var(--rule);
+                border: 1px solid var(--rule);
+            }
+            .place {
+                background: var(--paper);
+                padding: 1.4rem;
+                min-height: 170px;
+                text-decoration: none;
+            }
+            .place b {
+                font: 1.55rem var(--serif);
+                display: block;
+                margin: 0.6rem 0;
+            }
+            .stories {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1.5rem;
+            }
+            .story {
+                border-top: 3px solid var(--mate);
+                padding-top: 1rem;
+            }
+            .story a {
+                text-decoration: none;
+            }
+            .story .eyebrow {
+                font-size: 0.68rem;
+            }
+            .invite {
+                margin-block: 4rem;
+                background: var(--mate);
+                color: #f4f0e6;
+                padding: clamp(1.5rem, 5vw, 3rem);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 2rem;
+            }
+            .invite h2 {
+                max-width: 14ch;
+                margin-bottom: 0.5rem;
+            }
+            .page {
+                border-top: 1px solid var(--rule);
+                margin-top: 3rem;
+                padding-top: 2rem;
+            }
+            .crumb {
+                font-size: 0.9rem;
+                color: var(--muted);
+                margin-bottom: 2rem;
+            }
+            .region-head {
+                max-width: 800px;
+                padding-block: 2rem 3.5rem;
+            }
+            .region-head h1 {
+                max-width: 14ch;
+            }
+            .region-head p {
+                max-width: 42rem;
+                color: var(--muted);
+                font-size: 1.1rem;
+            }
+            .region-actions {
+                display: flex;
+                gap: 0.75rem;
+                flex-wrap: wrap;
+                margin-top: 1.5rem;
+            }
+            .region-feature {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                background: var(--surface);
+                border: 1px solid var(--rule);
+                margin-bottom: 3rem;
+            }
+            .region-feature .photo {
+                min-height: 260px;
+            }
+            .region-feature .lead-copy {
+                padding: 2rem;
+            }
+            .municipalities {
+                columns: 3;
+                list-style: none;
+                padding: 0;
+            }
+            .municipalities li {
+                break-inside: avoid;
+                border-bottom: 1px solid var(--rule);
+                padding: 0.7rem 0;
+            }
+            .footer {
+                border-top: 1px solid var(--rule);
+                padding-block: 2rem;
+                color: var(--muted);
+                font-size: 0.9rem;
+                display: flex;
+                justify-content: space-between;
+                gap: 1rem;
+            }
+            .section-label {
+                scroll-margin-top: 4rem;
+            }
+            .dark-toggle {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4rem;
+            }
+            @media (max-width: 760px) {
+                .mast {
+                    align-items: flex-start;
+                    flex-direction: column;
+                    gap: 0.8rem;
+                }
+                .mast nav {
+                    width: 100%;
+                    overflow: auto;
+                    gap: 1rem;
+                    padding-block: 0.25rem;
+                }
+                .search {
+                    display: none;
+                }
+                .intro {
+                    grid-template-columns: 1fr;
+                    padding-top: 3rem;
+                }
+                .intro-aside {
+                    max-width: 32rem;
+                }
+                .lead,
+                .region-feature {
+                    grid-template-columns: 1fr;
+                }
+                .lead .photo {
+                    min-height: 230px;
+                    order: -1;
+                }
+                .places {
+                    grid-template-columns: 1fr;
+                }
+                .place {
+                    min-height: unset;
+                }
+                .stories {
+                    grid-template-columns: 1fr;
+                    gap: 1.2rem;
+                }
+                .story {
+                    padding-block: 0.4rem 1rem;
+                }
+                .invite {
+                    align-items: flex-start;
+                    flex-direction: column;
+                }
+                .municipalities {
+                    columns: 2;
+                }
+                .footer {
+                    flex-direction: column;
+                }
+            }
+            @media (max-width: 420px) {
+                .mast nav {
+                    font-size: 0.82rem;
+                }
+                .search-large {
+                    align-items: stretch;
+                    flex-direction: column;
+                }
+                .search-large .button {
+                    width: 100%;
+                }
+                .municipalities {
+                    columns: 1;
+                }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                * {
+                    scroll-behavior: auto !important;
+                    transition: none !important;
+                }
+            }
+            #theme:checked ~ .site {
+                --paper: #17241f;
+                --surface: #202f28;
+                --mate: #e5e9dd;
+                --leather: #d49a78;
+                --wine: #d89aa5;
+                --muted: #c0c9bd;
+                --rule: #3a4941;
+                color: var(--mate);
+            }
+            #theme {
+                position: absolute;
+                opacity: 0;
+                pointer-events: none;
+            }
+        </style>
+    </head>
+    <body>
+        <input
+            type="checkbox"
+            id="theme"
+            aria-label="Alternar tema claro e escuro"
+        />
+        <div class="site">
+            <div class="demo">
+                PROTÓTIPO — CONTEÚDO DEMONSTRATIVO, NÃO É PUBLICAÇÃO REAL
+            </div>
+            <header class="wrap mast">
+                <a class="brand" href="#inicio">desgarrados<span>.</span></a>
+                <nav aria-label="Navegação do protótipo">
+                    <a href="#inicio">Início</a><a href="#regiao">Territórios</a
+                    ><a href="#historias">Histórias</a
+                    ><label class="toggle dark-toggle" for="theme"
+                        >◐ Tema</label
+                    >
+                </nav>
+                <form class="search" action="#historias">
+                    <label for="busca">Buscar</label
+                    ><input
+                        id="busca"
+                        type="search"
+                        placeholder="lugar ou história"
+                    />
+                </form>
+            </header>
+            <main class="wrap">
+                <section id="inicio" aria-labelledby="home-title">
+                    <div class="intro">
+                        <div>
+                            <p class="eyebrow">
+                                Memória · território · pertencimento
+                            </p>
+                            <h1 id="home-title">
+                                Há lugares que seguem com a gente.
+                            </h1>
+                            <p>
+                                Um convite para percorrer histórias, paisagens e
+                                costumes que aproximam quem partiu e quem ficou.
+                            </p>
+                        </div>
+                        <div class="intro-aside">
+                            <form class="search-large" action="#historias">
+                                <label class="sr-only" for="busca-grande"
+                                    >O que você procura?</label
+                                ><input
+                                    id="busca-grande"
+                                    type="search"
+                                    placeholder="Que lugar ou história você procura?"
+                                /><button class="button" type="submit">
+                                    Explorar
+                                </button>
+                            </form>
+                            <p class="meta" style="margin: 0.6rem 0 0">
+                                Busca demonstrativa — não conectada ao portal.
+                            </p>
+                        </div>
+                    </div>
+                    <article class="lead">
+                        <div
+                            class="photo"
+                            role="img"
+                            aria-label="Área reservada para fotografia documental"
+                        >
+                            <small
+                                >Imagem demonstrativa — substituir apenas por
+                                mídia autorizada e publicada</small
+                            >
+                        </div>
+                        <div class="lead-copy">
+                            <p class="eyebrow">Destaque · protótipo</p>
+                            <h2>Uma história real ocupará este espaço.</h2>
+                            <p class="meta">
+                                Município, autoria e data aparecem junto ao
+                                conteúdo quando disponíveis.
+                            </p>
+                            <a href="#historias">Conhecer a história →</a>
+                        </div>
+                    </article>
+                    <section class="section" aria-labelledby="places-title">
+                        <div class="section-head">
+                            <div>
+                                <p class="eyebrow">Descobrir pelo lugar</p>
+                                <h2 id="places-title">
+                                    Territórios de memória
+                                </h2>
+                            </div>
+                            <a href="#regiao">Ver todos →</a>
+                        </div>
+                        <div class="places">
+                            <a class="place" href="#regiao"
+                                ><span class="eyebrow"
+                                    >Região · exemplo de layout</span
+                                ><b>Nome de uma região</b
+                                ><span class="meta"
+                                    >Descrição real e vínculos territoriais
+                                    entram após publicação.</span
+                                ></a
+                            ><a class="place" href="#regiao"
+                                ><span class="eyebrow">Estado</span
+                                ><b>Um caminho pelo mapa</b
+                                ><span class="meta"
+                                    >Explore municípios e suas histórias.</span
+                                ></a
+                            ><a class="place" href="#regiao"
+                                ><span class="eyebrow">Sua origem</span
+                                ><b>Minha terra</b
+                                ><span class="meta"
+                                    >Encontre um lugar que faz parte da sua
+                                    história.</span
+                                ></a
+                            >
+                        </div>
+                    </section>
+                    <section id="historias" class="section section-label">
+                        <div class="section-head">
+                            <div>
+                                <p class="eyebrow">Curadoria editorial</p>
+                                <h2>Histórias para percorrer</h2>
+                            </div>
+                            <a href="#historias">Ver todas →</a>
+                        </div>
+                        <div class="stories">
+                            <article class="story">
+                                <p class="eyebrow">
+                                    Causo · conteúdo demonstrativo
+                                </p>
+                                <h3>
+                                    <a href="#historias"
+                                        >Título de uma história publicada</a
+                                    >
+                                </h3>
+                                <p class="meta">
+                                    Resumo, autoria e lugar aparecem quando
+                                    fornecidos.
+                                </p>
+                            </article>
+                            <article class="story">
+                                <p class="eyebrow">
+                                    Cultura · conteúdo demonstrativo
+                                </p>
+                                <h3>
+                                    <a href="#historias"
+                                        >Outro título editorial real</a
+                                    >
+                                </h3>
+                                <p class="meta">
+                                    Apenas conteúdos aprovados entram nesta
+                                    trilha.
+                                </p>
+                            </article>
+                            <article class="story">
+                                <p class="eyebrow">
+                                    Memória · conteúdo demonstrativo
+                                </p>
+                                <h3>
+                                    <a href="#historias"
+                                        >Mais uma história da comunidade</a
+                                    >
+                                </h3>
+                                <p class="meta">
+                                    Sem conteúdo disponível, mostrar estado
+                                    vazio honesto.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+                    <aside class="invite">
+                        <div>
+                            <p class="eyebrow">Exploração territorial</p>
+                            <h2>Comece por um lugar.</h2>
+                            <p>
+                                Municípios, estados e regiões conectados por
+                                histórias.
+                            </p>
+                        </div>
+                        <a class="button secondary" href="#regiao"
+                            >Explorar territórios →</a
+                        >
+                    </aside>
+                </section>
+                <section
+                    id="regiao"
+                    class="page section-label"
+                    aria-labelledby="region-title"
+                >
+                    <nav class="crumb" aria-label="Você está em">
+                        Brasil / Regiões / Protótipo regional
+                    </nav>
+                    <header class="region-head">
+                        <p class="eyebrow">Região cultural · demonstração</p>
+                        <h1 id="region-title">
+                            Um território com muitas lembranças.
+                        </h1>
+                        <p>
+                            Apresentação editorial da região, com contexto e
+                            relações territoriais vindos dos dados aprovados —
+                            este texto é apenas demonstrativo.
+                        </p>
+                        <div class="region-actions">
+                            <a class="button" href="#municipios"
+                                >Conhecer municípios</a
+                            ><a class="button secondary" href="#region-stories"
+                                >Ler histórias</a
+                            >
+                        </div>
+                    </header>
+                    <section class="section" id="region-stories">
+                        <div class="section-head">
+                            <div>
+                                <p class="eyebrow">Seleção editorial</p>
+                                <h2>Em destaque</h2>
+                            </div>
+                            <a href="#region-stories">Mais histórias →</a>
+                        </div>
+                        <article class="region-feature">
+                            <div
+                                class="photo"
+                                role="img"
+                                aria-label="Área reservada para fotografia autorizada"
+                            >
+                                <small>Espaço para imagem autorizada</small>
+                            </div>
+                            <div class="lead-copy">
+                                <p class="eyebrow">Conteúdo demonstrativo</p>
+                                <h3>Uma publicação real em destaque</h3>
+                                <p class="meta">
+                                    Resumo e localidade quando disponíveis, sem
+                                    conteúdo fictício apresentado como real.
+                                </p>
+                            </div>
+                        </article>
+                    </section>
+                    <section class="section">
+                        <div class="section-head">
+                            <div>
+                                <p class="eyebrow">Percurso editorial</p>
+                                <h2>Histórias e memórias</h2>
+                            </div>
+                            <a href="#region-stories">Ver arquivo →</a>
+                        </div>
+                        <div class="stories">
+                            <article class="story">
+                                <p class="eyebrow">Publicado · exemplo</p>
+                                <h3>Título real fornecido pela curadoria</h3>
+                                <p class="meta">Localidade · autoria</p>
+                            </article>
+                            <article class="story">
+                                <p class="eyebrow">Publicado · exemplo</p>
+                                <h3>Outra narrativa aprovada</h3>
+                                <p class="meta">Localidade · autoria</p>
+                            </article>
+                            <article class="story">
+                                <p class="eyebrow">Estado vazio</p>
+                                <h3>Quando não há histórias</h3>
+                                <p class="meta">
+                                    “As histórias desta região estão sendo
+                                    preparadas.”
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+                    <section class="section" id="municipios">
+                        <div class="section-head">
+                            <div>
+                                <p class="eyebrow">Explorar pelo mapa</p>
+                                <h2>Municípios relacionados</h2>
+                            </div>
+                            <a href="#municipios">Ver lista completa →</a>
+                        </div>
+                        <ul class="municipalities">
+                            <li>
+                                <a href="#municipios">Município real · RS</a>
+                            </li>
+                            <li>
+                                <a href="#municipios"
+                                    >Município relacionado · RS</a
+                                >
+                            </li>
+                            <li>
+                                <a href="#municipios">Outro município · SC</a>
+                            </li>
+                            <li>
+                                <a href="#municipios"
+                                    >Lista paginada pela aplicação</a
+                                >
+                            </li>
+                        </ul>
+                        <p class="meta">
+                            Nomes acima servem apenas para indicar hierarquia; o
+                            protótipo não simula vínculos reais.
+                        </p>
+                    </section>
+                </section>
+            </main>
+            <footer class="wrap footer">
+                <span
+                    >Desgarrados — protótipo de UX, sem conteúdo de
+                    produção.</span
+                ><a href="#inicio">Voltar ao início ↑</a>
+            </footer>
+        </div>
+    </body>
+</html>

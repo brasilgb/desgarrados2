@@ -16,6 +16,12 @@ export default function Create({ types }: { types: string[] }) {
         summary: '',
         body: '',
         public_byline: '',
+        rights_status: 'unverified' as const,
+        rights_author: '',
+        rights_holder: '',
+        rights_basis: '',
+        rights_reference: '',
+        rights_restrictions: '',
         sources: [] as Source[],
     });
     return (
@@ -55,6 +61,7 @@ export default function Create({ types }: { types: string[] }) {
                 </label>
                 <ContentFields
                     data={form.data}
+                    type={form.data.type}
                     change={(key, value) =>
                         form.setData((old) => ({ ...old, [key]: value }))
                     }

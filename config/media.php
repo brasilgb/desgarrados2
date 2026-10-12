@@ -34,7 +34,7 @@ return [
         'card' => 640,
     ],
 
-    // Navegadores e proxies podem reter a mídia pública por pouco tempo; ocultar a publicação a retira em seguida.
-    'public_max_age' => 300,
+    // Mídia pública sempre revalida; bloqueios, ocultações e revogações têm efeito na requisição seguinte.
+    'public_max_age' => 0,
 
 ];

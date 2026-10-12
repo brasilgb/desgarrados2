@@ -3,25 +3,25 @@
 // Standalone integration check: committed fixtures are visible to independent workers.
 
 use App\Actions\Editorial\EditorialWorkflow;
+use App\Actions\Editorial\ManagePublicationFeatures;
 use App\Models\Publication;
+use App\Models\PublicationFeature;
 use App\Models\PublicationSlug;
+use App\Models\Region;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Tests\Support\TestDatabaseConnection;
 
 require dirname(__DIR__, 2).'/vendor/autoload.php';
 $app = require dirname(__DIR__, 2).'/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 
-$connection = config('database.connections.'.config('database.default'));
-if (config('database.default') !== 'mariadb' || $connection['database'] !== 'desgarrados2_test'
-    || $connection['host'] !== '127.0.0.1' || $connection['username'] !== 'desgarrados'
-    || ! empty($connection['url']) || ! empty($connection['unix_socket']) || ! empty($connection['read']) || ! empty($connection['write'])) {
-    throw new RuntimeException('Concurrency checks require the dedicated local test database.');
-}
+TestDatabaseConnection::configure();
+TestDatabaseConnection::verifyConnectedIdentity();
 if (! extension_loaded('pcntl')) {
     throw new RuntimeException('pcntl is required.');
 }
@@ -31,7 +31,7 @@ $editor = User::factory()->create();
 $author->roles()->attach(Role::where('code', 'author')->firstOrFail());
 $editor->roles()->attach(Role::where('code', 'editor')->firstOrFail());
 $workflow = new EditorialWorkflow;
-$text = ['type' => 'memory', 'title' => 'Ensaio concorrente '.bin2hex(random_bytes(6)), 'body' => 'Texto de teste.'];
+$text = ['type' => 'memory', 'title' => 'Ensaio concorrente '.bin2hex(random_bytes(6)), 'body' => 'Texto de teste.', 'rights_status' => 'original', 'rights_author' => 'Autor de teste'];
 $publication = $workflow->create($author, $text);
 $slug = 'concorrencia-'.bin2hex(random_bytes(8));
 
@@ -119,10 +119,28 @@ try {
     ensure($statuses === [0, 0], 'concurrent authorized publication swaps');
     ensure(in_array($publication->refresh()->published_revision_id, $revisions->modelKeys(), true)
         && $publication->publishedRevision->status->value === 'approved', 'final public pointer is an approved owned revision');
+    $region = Region::factory()->create();
+    $publication->regions()->attach($region);
+    $manager = new ManagePublicationFeatures;
+    $startsAt = now()->addDay();
+    $statuses = workers(2, function () use ($manager, $editor, $publication, $region, $startsAt): int {
+        try {
+            $manager->save($editor, ['publication_id' => $publication->id, 'region_id' => $region->id,
+                'position' => 1, 'starts_at' => $startsAt, 'ends_at' => $startsAt->addDay()]);
+
+            return 0;
+        } catch (ValidationException) {
+            return 2;
+        }
+    });
+    ensure($statuses === [0, 2], 'overlapping feature position: one committed winner and one validation failure');
+    ensure(PublicationFeature::where('region_id', $region->id)->count() === 1, 'one feature remains after concurrent scheduling');
 } finally {
     DB::purge();
     $ids = Publication::withTrashed()->where('author_id', $author->id)->pluck('id');
     DB::transaction(function () use ($ids, $author, $editor): void {
+        $regionIds = DB::table('publication_region')->whereIn('publication_id', $ids)->pluck('region_id');
+        DB::table('publication_features')->whereIn('publication_id', $ids)->delete();
         DB::table('publications')->whereIn('id', $ids)->update(['status' => 'draft', 'published_revision_id' => null, 'published_revision_status' => null,
             'scheduled_revision_id' => null, 'scheduled_revision_status' => null, 'scheduled_for' => null]);
         $revisionIds = DB::table('publication_revisions')->whereIn('publication_id', $ids)->pluck('id');
@@ -133,5 +151,6 @@ try {
         DB::table('publications')->whereIn('id', $ids)->delete();
         DB::table('role_user')->whereIn('user_id', [$author->id, $editor->id])->delete();
         DB::table('users')->whereIn('id', [$author->id, $editor->id])->delete();
+        DB::table('regions')->whereIn('id', $regionIds)->delete();
     });
 }

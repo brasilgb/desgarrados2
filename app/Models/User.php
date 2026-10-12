@@ -20,15 +20,18 @@ use Illuminate\Support\Facades\DB;
  * @property string $name
  * @property string $email
  * @property Carbon|null $email_verified_at
+ * @property bool $is_active
  * @property string $password
  * @property string|null $remember_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'password', 'is_active'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
+    protected $attributes = ['is_active' => true];
+
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
@@ -46,9 +49,10 @@ class User extends Authenticatable implements MustVerifyEmail
     /** @param array<string, mixed> $options */
     public function save(array $options = []): bool
     {
-        if ($this->exists && $this->isDirty('email_verified_at') && $this->email_verified_at === null) {
+        if ($this->exists && (($this->isDirty('email_verified_at') && $this->email_verified_at === null)
+            || ($this->isDirty('is_active') && ! $this->is_active))) {
             return DB::transaction(function () use ($options): bool {
-                (new ProtectLastAdministrator)->handle($this, 'email');
+                (new ProtectLastAdministrator)->handle($this, $this->isDirty('is_active') && ! $this->is_active ? 'status' : 'email');
 
                 return parent::save($options);
             }, 3);
@@ -84,6 +88,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             'email_verified_at' => 'datetime',
+            'is_active' => 'boolean',
             'password' => 'hashed',
         ];
     }

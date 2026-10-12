@@ -86,7 +86,7 @@ function mediaUser(RoleCode ...$roles): User
 function mediaDraft(User $author, string $title = 'Fotografias da estação'): array
 {
     $p = (new EditorialWorkflow)->create($author, ['type' => 'memory', 'title' => $title, 'summary' => 'Resumo.',
-        'body' => "Primeiro parágrafo.\n\nSegundo parágrafo.", 'public_byline' => 'Assinatura', 'sources' => []]);
+        'body' => "Primeiro parágrafo.\n\nSegundo parágrafo.", 'public_byline' => 'Assinatura', 'rights_status' => 'original', 'rights_author' => 'Autor da história', 'sources' => []]);
 
     return [$p, $p->revisions()->sole()];
 }
@@ -295,7 +295,7 @@ it('serves derivatives publicly only for visible published revisions', function 
     $url = route('media.show', ['uuid' => $cover->uuid, 'variant' => 'cover']);
 
     $this->get($url)->assertOk()->assertHeader('Content-Type', 'image/webp')
-        ->assertHeader('Cache-Control', 'max-age=300, public')->assertHeader('X-Content-Type-Options', 'nosniff');
+        ->assertHeader('Cache-Control', 'max-age=0, must-revalidate, public')->assertHeader('X-Content-Type-Options', 'nosniff');
     $this->get(route('media.show', ['uuid' => $cover->uuid, 'variant' => 'original']))->assertNotFound();
     $this->get('/midia/'.Str::uuid().'/card.webp')->assertNotFound();
     expect($this->get('/storage/'.$cover->original_path)->status())->toBeIn([403, 404]);

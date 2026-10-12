@@ -2,7 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Editorial\PublicEditorialPresenter;
 use App\Models\Municipality;
+use App\Models\Publication;
+use App\Models\PublicationFeature;
+use App\Models\Region;
 use App\Models\State;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
@@ -11,12 +15,32 @@ use Inertia\Response;
 
 class TerritoryController extends Controller
 {
-    public function home(): Response
+    public function home(PublicEditorialPresenter $presenter): Response
     {
+        $relations = PublicEditorialPresenter::relations();
+        $globalFeatureIds = PublicationFeature::query()->active()->whereNull('region_id')->orderBy('position')->pluck('publication_id');
+        $features = Publication::query()->publiclyVisible()->whereIn('id', $globalFeatureIds)->with($relations)->get()
+            ->filter(fn (Publication $publication) => $presenter->eligibleForFeature($publication))
+            ->sortBy(fn (Publication $publication) => $globalFeatureIds->search($publication->id))->values();
+        $featureStories = $features->map(fn (Publication $publication) => $presenter->story($publication));
+        $recent = fn (array $types, int $limit = 3) => Publication::query()->publiclyVisible()->whereIn('type', $types)->with($relations)
+            ->orderByDesc('published_at')->orderByDesc('id')->limit($limit)->get()->map(fn (Publication $publication) => $presenter->story($publication));
+
         return Inertia::render('welcome', [
             'featuredState' => State::where('abbreviation', 'RS')->where('active', true)->first(['id', 'name', 'slug', 'abbreviation']),
             'stateCount' => State::where('active', true)->count(),
             'municipalityCount' => Municipality::where('active', true)->count(),
+            'canonical' => route('home'),
+            'featured' => $featureStories,
+            'ogImage' => $featureStories->first()['cover']['image'] ?? null,
+            'recent' => $recent(['article', 'news', 'chronicle', 'personal_story', 'migration_story', 'memory'], 6),
+            'causos' => $recent(['causo']),
+            'culture' => $recent(['cultural_history']),
+            'regions' => Region::query()->where('active', true)->whereHas('publications', fn ($query) => $query->publiclyVisible())
+                ->withCount(['municipalities' => fn ($query) => $query->where('municipalities.active', true),
+                    'publications' => fn ($query) => $query->publiclyVisible()])
+                ->orderByRaw("CASE WHEN slug LIKE '%rio-grande%' THEN 0 ELSE 1 END")->orderByDesc('publications_count')->limit(6)
+                ->get(['id', 'name', 'slug', 'kind', 'description']),
         ]);
     }
 

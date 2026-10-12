@@ -1,163 +1,339 @@
 import { Head, Link } from '@inertiajs/react';
-import { ArrowRight, Compass, MapPin, Sprout } from 'lucide-react';
-import { index, myLand, state } from '@/routes/territory';
-import type { TerritoryState } from '@/types/territory';
+import {
+    ArrowRight,
+    BookOpen,
+    MapPin,
+    MessageCircleMore,
+    Sprout,
+} from 'lucide-react';
+import type { ReactNode } from 'react';
+import PublicSectionHeading from '@/components/public-section-heading';
+import RegionalHeroArtwork from '@/components/regional-hero-artwork';
+import StoryCard from '@/components/story-card';
+import TerritoryFinder from '@/components/territory-finder';
+import { register } from '@/routes';
+import { index as stories, section } from '@/routes/stories';
+import { index } from '@/routes/territory';
+import type { PublicStory } from '@/types/editorial';
+
+type Region = {
+    id: number;
+    name: string;
+    slug: string;
+    description: string | null;
+    municipalities_count: number;
+    publications_count: number;
+};
 
 export default function Welcome({
-    featuredState,
     stateCount,
     municipalityCount,
+    featured,
+    recent,
+    causos,
+    culture,
+    regions,
+    canonical,
+    ogImage,
 }: {
-    featuredState: TerritoryState | null;
     stateCount: number;
     municipalityCount: number;
+    featured: PublicStory[];
+    recent: PublicStory[];
+    causos: PublicStory[];
+    culture: PublicStory[];
+    regions: Region[];
+    canonical: string;
+    ogImage: { src: string; width: number; height: number } | null;
 }) {
+    const hero = featured[0];
+
     return (
-        <>
+        <div className="space-y-12 sm:space-y-20">
             <Head title="Nossas raízes seguem conosco">
                 <meta
                     name="description"
-                    content="Encontre sua terra, explore municípios e mantenha por perto as raízes que fazem parte da sua história."
+                    content="Histórias, causos, memórias, cultura e lugares que mantêm vivas as raízes de quem partiu e de quem ficou."
                 />
+                <link rel="canonical" href={canonical} />
+                <meta
+                    property="og:title"
+                    content="Nossas raízes seguem conosco"
+                />
+                <meta
+                    property="og:description"
+                    content="Histórias e lugares que mantêm vivas nossas raízes."
+                />
+                {ogImage && (
+                    <meta
+                        property="og:image"
+                        content={new URL(ogImage.src, canonical).toString()}
+                    />
+                )}
             </Head>
-            <section className="grid items-center gap-12 lg:grid-cols-[1.1fr_1fr]">
-                <div className="flex flex-col gap-7">
-                    <p className="text-xs font-semibold tracking-[0.24em] uppercase">
-                        Pertencer vai além de permanecer
+
+            <section className="grid items-center gap-6 lg:grid-cols-[.82fr_1.18fr] lg:gap-12">
+                <div className="py-1 sm:py-4">
+                    <p className="public-eyebrow mb-4">
+                        Memória · território · pertencimento
                     </p>
-                    <h1 className="max-w-2xl font-serif text-5xl leading-[1.06] tracking-tight sm:text-6xl lg:text-7xl">
-                        Nossas raízes
-                        <br />
-                        seguem{' '}
-                        <span className="text-[#9d4934] italic dark:text-[#e3a089]">
-                            conosco.
+                    <h1 className="max-w-[15ch] font-editorial text-4xl leading-[1.02] tracking-tight text-public-ink sm:max-w-[12ch] sm:text-6xl lg:text-7xl">
+                        Há lugares que seguem{' '}
+                        <span className="text-public-leather italic">
+                            com a gente.
                         </span>
                     </h1>
-                    <p className="max-w-lg text-lg leading-relaxed opacity-85">
-                        A gente pode mudar de cidade. Mas leva junto as
-                        paisagens, os costumes e os lugares que ensinam quem a
-                        gente é.
+                    <p className="mt-4 max-w-xl text-base leading-relaxed text-public-muted sm:mt-6 sm:text-xl">
+                        Memórias, paisagens, costumes e pessoas que continuam
+                        fazendo parte de quem somos — de onde estivermos.
                     </p>
-                    <div className="flex flex-wrap gap-4">
-                        <Link
-                            href={myLand()}
-                            className="flex items-center gap-3 rounded-full bg-[#243e35] px-6 py-3 font-medium text-white dark:bg-[#eee9dc] dark:text-[#15251f]"
-                        >
-                            Encontrar minha terra{' '}
-                            <ArrowRight className="size-4" aria-hidden="true" />
-                        </Link>
-                        <Link
-                            href={index()}
-                            className="rounded-full border border-current/30 px-6 py-3 font-medium"
-                        >
-                            Explorar o Brasil
-                        </Link>
-                    </div>
-                    <p className="text-sm opacity-75">
-                        Para quem partiu. Para quem ficou. Para quem quer
-                        conhecer.
-                    </p>
-                </div>
-                <div className="relative overflow-hidden rounded-t-[45%] rounded-b-3xl bg-[#ded8bd] dark:bg-[#344f43]">
-                    <svg
-                        viewBox="0 0 520 540"
-                        role="img"
-                        aria-labelledby="landscape-title"
-                        className="w-full"
-                    >
-                        <title id="landscape-title">
-                            Ilustração de campos, colinas e caminhos do Sul
-                        </title>
-                        <circle cx="359" cy="137" r="50" fill="#c48452" />
-                        <path
-                            d="M0 325 Q140 185 295 296 T520 263 V540 H0Z"
-                            fill="#879174"
-                        />
-                        <path
-                            d="M0 386 Q180 270 340 366 T520 316 V540 H0Z"
-                            fill="#55745e"
-                        />
-                        <path
-                            d="M0 455 Q160 361 310 419 T520 377 V540 H0Z"
-                            fill="#294b3e"
-                        />
-                        <path
-                            d="M282 540 Q110 469 252 403 Q350 355 295 296"
-                            fill="none"
-                            stroke="#d8c6a2"
-                            strokeWidth="20"
-                        />
-                        <path
-                            d="M60 414 V351 M40 364 L60 351 L80 364 M437 405 V342 M417 355 L437 342 L457 355"
-                            fill="none"
-                            stroke="#243e35"
-                            strokeWidth="5"
-                        />
-                    </svg>
-                    <div className="absolute right-6 bottom-6 left-6 flex items-center justify-between rounded-xl bg-[#f5f2e9]/95 px-5 py-4 text-[#243e35]">
-                        <span className="text-sm">
-                            Uma terra. Muitas histórias.
-                        </span>
-                        <Sprout className="size-5" aria-hidden="true" />
+                    <div className="mt-6 max-w-xl sm:mt-8">
+                        <TerritoryFinder compact />
                     </div>
                 </div>
+                {hero ? (
+                    <div className="home-feature">
+                        <StoryCard story={hero} prominent />
+                    </div>
+                ) : (
+                    <RegionalHeroArtwork />
+                )}
             </section>
-            <section
-                className="mt-16 grid gap-8 border-t border-current/20 pt-10 md:grid-cols-3"
-                aria-label="Descubra o território"
-            >
-                <div className="flex flex-col gap-3">
-                    <Compass className="size-6" aria-hidden="true" />
-                    <h2 className="text-xl font-semibold">
-                        Um Brasil de pertencimentos
-                    </h2>
-                    <p className="text-sm leading-relaxed opacity-80">
-                        {stateCount} estados e{' '}
-                        {municipalityCount.toLocaleString('pt-BR')} municípios
-                        para descobrir no nosso território.
-                    </p>
-                    <Link
-                        href={index()}
-                        className="text-sm font-semibold underline underline-offset-4"
-                    >
-                        Conhecer os estados
-                    </Link>
-                </div>
-                <div className="flex flex-col gap-3">
-                    <MapPin className="size-6" aria-hidden="true" />
-                    <h2 className="text-xl font-semibold">
-                        Começamos pelo Rio Grande
-                    </h2>
-                    <p className="text-sm leading-relaxed opacity-80">
-                        O Sul é nosso ponto de partida. O vínculo com a terra
-                        não conhece fronteiras.
-                    </p>
-                    {featuredState && (
-                        <Link
-                            href={state(featuredState.slug)}
-                            className="text-sm font-semibold underline underline-offset-4"
-                        >
-                            Explorar o Rio Grande do Sul
-                        </Link>
-                    )}
-                </div>
-                <div className="flex flex-col gap-3">
-                    <Sprout className="size-6" aria-hidden="true" />
-                    <h2 className="text-xl font-semibold">
-                        Sua terra, sua escolha
-                    </h2>
-                    <p className="text-sm leading-relaxed opacity-80">
-                        Escolha um lugar para explorar. Essa escolha não altera
-                        seu perfil nem divulga onde você vive.
-                    </p>
-                    <Link
-                        href={myLand()}
-                        className="text-sm font-semibold underline underline-offset-4"
-                    >
-                        Encontrar minha terra
-                    </Link>
+
+            {featured.length > 1 && (
+                <section>
+                    <PublicSectionHeading
+                        eyebrow="Escolhas da curadoria"
+                        title="Outras histórias em destaque"
+                        href={stories().url}
+                    />
+                    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                        {featured.slice(1).map((story) => (
+                            <StoryCard key={story.slug} story={story} />
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            <section className="public-section">
+                <PublicSectionHeading
+                    eyebrow="Um acervo feito de muitas vozes"
+                    title="Por onde sua memória quer começar?"
+                />
+                <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
+                    <CollectionPathway
+                        number="01"
+                        icon={<BookOpen aria-hidden="true" />}
+                        title="Vidas e travessias"
+                        description="Lembranças pessoais, migrações e caminhos entre lugares."
+                        href={section('historias').url}
+                    />
+                    <CollectionPathway
+                        number="02"
+                        icon={<MessageCircleMore aria-hidden="true" />}
+                        title="Causos"
+                        description="Histórias contadas com humor, detalhe e jeito próprio."
+                        href={section('causos').url}
+                    />
+                    <CollectionPathway
+                        number="03"
+                        icon={<Sprout aria-hidden="true" />}
+                        title="Saberes e tradições"
+                        description="Práticas culturais, costumes e memória coletiva."
+                        href={section('cultura-e-tradicoes').url}
+                    />
                 </div>
             </section>
-        </>
+
+            {recent.length > 0 && (
+                <section className="public-section">
+                    <PublicSectionHeading
+                        eyebrow="Narrativas da comunidade"
+                        title="Vidas, lembranças e travessias"
+                        href={stories().url}
+                    />
+                    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                        {recent.map((story) => (
+                            <StoryCard key={story.slug} story={story} />
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {causos.length > 0 && (
+                <EditorialSection
+                    eyebrow="Humor e oralidade"
+                    title="Causos que passam de boca em boca"
+                    stories={causos}
+                    href={section('causos').url}
+                />
+            )}
+            {culture.length > 0 && (
+                <EditorialSection
+                    eyebrow="Cultura vivida"
+                    title="Saberes, costumes e tradições"
+                    stories={culture}
+                    href={section('cultura-e-tradicoes').url}
+                />
+            )}
+
+            <section className="public-section">
+                <PublicSectionHeading
+                    eyebrow="Caminhos de descoberta"
+                    title="A memória também mora no território."
+                    href={index().url}
+                    label="Explorar territórios"
+                />
+                {regions.length ? (
+                    <div className="grid gap-px overflow-hidden rounded-2xl border border-public-rule bg-public-rule md:grid-cols-2 xl:grid-cols-3">
+                        {regions.map((region, position) => (
+                            <Link
+                                key={region.id}
+                                href={`/regioes/${region.slug}`}
+                                className="public-focus group flex min-h-48 flex-col items-start bg-public-paper p-6 transition-colors hover:bg-public-surface sm:p-8"
+                            >
+                                <span className="flex items-center gap-2 text-xs font-semibold tracking-[0.15em] text-public-leather uppercase">
+                                    <MapPin
+                                        className="size-4"
+                                        aria-hidden="true"
+                                    />
+                                    {position === 0
+                                        ? 'Comece por aqui'
+                                        : 'Região em evidência'}
+                                </span>
+                                <h3 className="mt-5 font-editorial text-3xl leading-tight tracking-tight text-public-ink">
+                                    {region.name}
+                                </h3>
+                                <p className="mt-3 flex-1 leading-relaxed text-public-muted">
+                                    {region.description ??
+                                        `${region.municipalities_count} municípios · ${region.publications_count} conteúdos relacionados`}
+                                </p>
+                                <span className="mt-5 inline-flex items-center gap-2 font-semibold text-public-leather">
+                                    Conhecer a região
+                                    <ArrowRight
+                                        className="size-4 transition-transform group-hover:translate-x-1"
+                                        aria-hidden="true"
+                                    />
+                                </span>
+                            </Link>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="territory-invitation grid gap-6 rounded-2xl bg-public-mate p-6 text-public-paper sm:p-8 lg:grid-cols-[1fr_auto] lg:items-center">
+                        <div>
+                            <p className="public-eyebrow !text-[#e2aa88]">
+                                Um país de muitos lugares
+                            </p>
+                            <h3 className="mt-2 max-w-[20ch] font-editorial text-3xl leading-tight sm:text-4xl">
+                                Comece pelo município que vive na sua lembrança.
+                            </h3>
+                            <p className="mt-3 max-w-2xl leading-relaxed text-public-paper/80">
+                                O catálogo já reúne {stateCount} estados e{' '}
+                                {municipalityCount.toLocaleString('pt-BR')}{' '}
+                                municípios para explorar.
+                            </p>
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                            <TerritoryFinder compact />
+                            <Link
+                                href={index().url}
+                                className="public-focus inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-public-paper/50 px-5 py-2.5 font-semibold text-public-paper hover:bg-public-paper/10"
+                            >
+                                Ver estados
+                                <ArrowRight
+                                    className="size-4"
+                                    aria-hidden="true"
+                                />
+                            </Link>
+                        </div>
+                    </div>
+                )}
+            </section>
+
+            <section className="community-invitation overflow-hidden rounded-3xl border border-public-rule bg-public-surface px-6 py-7 sm:px-10 sm:py-9 lg:flex lg:items-end lg:justify-between lg:gap-10">
+                <div>
+                    <p className="public-eyebrow">Uma comunidade de memória</p>
+                    <h2 className="mt-3 max-w-[18ch] font-editorial text-3xl leading-tight tracking-tight text-public-ink sm:text-4xl">
+                        Toda lembrança merece ser escutada com cuidado.
+                    </h2>
+                    <p className="mt-3 max-w-2xl leading-relaxed text-public-muted">
+                        Crie sua conta para acompanhar o portal e fazer parte da
+                        comunidade. As publicações passam por curadoria antes de
+                        aparecer no acervo.
+                    </p>
+                </div>
+                <Link
+                    href={register()}
+                    className="public-primary-link mt-6 w-full sm:w-auto lg:mt-0"
+                >
+                    Fazer parte
+                    <ArrowRight className="size-4" aria-hidden="true" />
+                </Link>
+            </section>
+        </div>
+    );
+}
+
+function EditorialSection({
+    eyebrow,
+    title,
+    stories: items,
+    href,
+}: {
+    eyebrow: string;
+    title: string;
+    stories: PublicStory[];
+    href: string;
+}) {
+    return (
+        <section className="public-section">
+            <PublicSectionHeading eyebrow={eyebrow} title={title} href={href} />
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                {items.map((story) => (
+                    <StoryCard key={story.slug} story={story} />
+                ))}
+            </div>
+        </section>
+    );
+}
+
+function CollectionPathway({
+    number,
+    icon,
+    title,
+    description,
+    href,
+}: {
+    number: string;
+    icon: ReactNode;
+    title: string;
+    description: string;
+    href: string;
+}) {
+    return (
+        <Link
+            href={href}
+            className="public-focus group flex min-h-48 flex-col rounded-2xl border border-public-rule bg-public-surface p-5 transition-colors hover:border-public-leather sm:p-6"
+        >
+            <span className="flex items-center justify-between text-sm text-public-leather">
+                <span className="grid size-10 place-items-center rounded-full bg-public-paper">
+                    {icon}
+                </span>
+                <span className="font-editorial text-lg">{number}</span>
+            </span>
+            <span className="mt-5 font-editorial text-2xl leading-tight text-public-ink">
+                {title}
+            </span>
+            <span className="mt-2 flex-1 text-sm leading-relaxed text-public-muted">
+                {description}
+            </span>
+            <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-public-leather">
+                Explorar coleção
+                <ArrowRight
+                    className="size-4 transition-transform group-hover:translate-x-1"
+                    aria-hidden="true"
+                />
+            </span>
+        </Link>
     );
 }

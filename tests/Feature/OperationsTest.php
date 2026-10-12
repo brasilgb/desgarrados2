@@ -32,7 +32,7 @@ function operationsScheduled(int $count, string $prefix = 'Agendada'): array
     $editor = operationsUser(RoleCode::Editor);
     $publications = [];
     for ($i = 1; $i <= $count; $i++) {
-        $p = $workflow->create($author, ['type' => 'memory', 'title' => "{$prefix} {$i}", 'summary' => 'Resumo.', 'body' => 'Corpo.', 'public_byline' => 'Assinatura', 'sources' => []]);
+        $p = $workflow->create($author, ['type' => 'memory', 'title' => "{$prefix} {$i}", 'summary' => 'Resumo.', 'body' => 'Corpo.', 'public_byline' => 'Assinatura', 'rights_status' => 'original', 'rights_author' => 'Autor DEMO', 'sources' => []]);
         $r = $p->revisions()->sole();
         $workflow->submit($author, $r);
         $workflow->review($editor, $r, true, null);
@@ -109,7 +109,7 @@ it('reports operational health without exposing configuration values', function 
     config(['inertia.ssr.enabled' => false]);
 
     $this->artisan('ops:health', ['--json' => true])->assertSuccessful()
-        ->doesntExpectOutputToContain((string) config('database.connections.mariadb.password'))
+        ->doesntExpectOutputToContain((string) config('database.connections.testing.password'))
         ->doesntExpectOutputToContain((string) config('app.key'))
         ->expectsOutputToContain('"healthy":true');
     $this->artisan('ops:health', ['--strict' => true])->assertFailed();

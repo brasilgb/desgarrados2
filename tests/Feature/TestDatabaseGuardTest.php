@@ -1,31 +1,30 @@
 <?php
 
-test('running against a non-test database is refused', function (string $database) {
-    config(['database.connections.'.config('database.default').'.database' => $database]);
+use Tests\Support\TestDatabaseConnection;
 
-    $this->ensureTestDatabaseIsDedicated();
-})->with(['desgarrados2', 'another_project_test', ':memory:'])
-    ->throws(RuntimeException::class, 'Refusing to run tests against non-test database');
+test('test database must be different from the configured main database', function () {
+    $mainDatabase = config('database.connections.'.env('DB_CONNECTION', 'mysql').'.database');
+    config(['database.connections.testing.database' => $mainDatabase]);
 
-test('running against a dedicated test database is allowed', function () {
-    config(['database.connections.'.config('database.default').'.database' => 'desgarrados2_test']);
+    TestDatabaseConnection::assertSafe();
+})->throws(RuntimeException::class, 'configure a local MySQL/MariaDB database distinct from the main database');
 
-    $this->ensureTestDatabaseIsDedicated();
+test('local mysql and mariadb test connections with a separate database are allowed', function (string $driver) {
+    config(['database.connections.testing.driver' => $driver, 'database.connections.testing.database' => 'test_fixture_isolation']);
 
+    TestDatabaseConnection::assertSafe();
     expect(true)->toBeTrue();
-});
+})->with(['mysql', 'mariadb']);
 
-test('running with an unsafe database connection is refused', function (string $key, mixed $value) {
-    config(['database.connections.mariadb.'.$key => $value]);
+test('unsafe test database endpoints are refused', function (string $key, mixed $value) {
+    config(['database.connections.testing.'.$key => $value]);
 
-    $this->ensureTestDatabaseIsDedicated();
+    TestDatabaseConnection::assertSafe();
 })->with([
-    'root user' => ['username', 'root'],
-    'another host' => ['host', '192.0.2.1'],
-    'another port' => ['port', '3307'],
-    'another driver' => ['driver', 'sqlite'],
-    'URL override' => ['url', 'mysql://127.0.0.1/desgarrados2'],
+    'remote host' => ['host', '192.0.2.1'],
+    'unsupported driver' => ['driver', 'sqlite'],
+    'URL override' => ['url', 'mysql://localhost/test_fixture_isolation'],
     'socket override' => ['unix_socket', '/tmp/mysql.sock'],
-    'read override' => ['read', ['database' => 'desgarrados2']],
-    'write override' => ['write', ['database' => 'desgarrados2']],
-])->throws(RuntimeException::class, 'Refusing to run tests with a connection outside the dedicated MariaDB configuration.');
+    'read override' => ['read', ['database' => 'primary']],
+    'write override' => ['write', ['database' => 'primary']],
+])->throws(RuntimeException::class, 'configure a local MySQL/MariaDB database distinct from the main database');

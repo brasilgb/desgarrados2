@@ -3,8 +3,12 @@
 use App\Enums\PublicationStatus;
 use App\Enums\RevisionStatus;
 use App\Models\AuditEntry;
+use App\Models\Category;
+use App\Models\Municipality;
 use App\Models\Publication;
+use App\Models\Region;
 use App\Models\Role;
+use App\Models\Tag;
 use App\Models\User;
 use App\RoleCode;
 use Database\Seeders\RoleSeeder;
@@ -14,7 +18,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 
 /**
  * Homologação DESG-V2-006: fluxo editorial completo pelas rotas HTTP, com usuários temporários
- * criados apenas no banco dedicado de testes.
+ * criados apenas no banco de integração configurado, separado do banco principal.
  */
 function homologationUser(RoleCode ...$roles): User
 {
@@ -29,7 +33,7 @@ function homologationUser(RoleCode ...$roles): User
 function homologationText(string $title, string $body = "Primeiro parágrafo.\n\nSegundo parágrafo."): array
 {
     return ['type' => 'memory', 'title' => $title, 'summary' => 'Resumo de homologação.', 'body' => $body,
-        'public_byline' => 'Assinatura pública', 'sources' => []];
+        'public_byline' => 'Assinatura pública', 'rights_status' => 'original', 'rights_author' => 'Autoria DEMO', 'sources' => []];
 }
 
 function homologationTransition(User $actor, Publication $publication, string $action, array $data = []): TestResponse
@@ -121,6 +125,85 @@ it('homologates the complete editorial flow through HTTP routes', function () {
     $this->get(route('stories.show', 'causo-renomeado'))->assertNotFound();
     $this->get(route('stories.show', $slug))->assertNotFound();
     $this->get(route('stories.index'))->assertInertia(fn (Assert $page) => $page->has('publications.data', 0));
+});
+
+it('shows an unpublished candidate in protected visitor preview only to authorized editorial users', function () {
+    $author = homologationUser(RoleCode::Collaborator);
+    $other = homologationUser(RoleCode::Collaborator);
+    $this->actingAs($author)->post(route('editorial.store'), homologationText('Prévia reservada DEMO'))->assertRedirect();
+    $publication = Publication::sole();
+    $revision = $publication->revisions()->sole();
+    $url = route('editorial.preview', [$publication, $revision]);
+
+    homologationGuest();
+    $this->get($url)->assertRedirect(route('login'));
+    $this->actingAs($other)->get($url)->assertForbidden();
+    $this->actingAs($author)->get($url)->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->component('editorial/publication')->where('preview', true)
+        ->where('publication.title', 'Prévia reservada DEMO'));
+    $this->get(route('stories.show', $publication->currentSlug->slug))->assertNotFound();
+});
+
+it('publishes an original DEMO story through the newsroom and discovers it across public routes', function () {
+    $author = homologationUser(RoleCode::Collaborator);
+    $editor = homologationUser(RoleCode::Editor);
+    $municipality = Municipality::factory()->create(['name' => 'Município DEMO UX007']);
+
+    $this->actingAs($editor)->post(route('editorial.taxonomy.save', 'categories'), ['name' => 'Tema DEMO UX007'])->assertRedirect();
+    $category = Category::where('name', 'Tema DEMO UX007')->sole();
+    $this->post(route('editorial.taxonomy.save', 'tags'), ['name' => 'Expressão DEMO UX007'])->assertRedirect();
+    $tag = Tag::where('name', 'Expressão DEMO UX007')->sole();
+    $this->post(route('editorial.regions.save'), [
+        'name' => 'Região DEMO UX007',
+        'kind' => 'cultural',
+        'description' => 'Região fictícia criada para homologação.',
+        'active' => true,
+        'municipality_ids' => [$municipality->id],
+    ])->assertRedirect();
+    $region = Region::where('name', 'Região DEMO UX007')->sole();
+
+    $this->actingAs($author)->post(route('editorial.store'), [
+        ...homologationText('DEMO UX007 · Caminhos de uma memória'),
+        'body' => "História original e fictícia para homologação.\n\nNenhuma pessoa ou local real é retratado.",
+    ])->assertRedirect();
+    $publication = Publication::sole();
+    $revision = $publication->revisions()->sole();
+
+    $this->actingAs($editor)->patch(route('editorial.metadata', $publication), [
+        'slug' => $publication->currentSlug->slug,
+        'municipality_id' => $municipality->id,
+        'category_id' => $category->id,
+        'tag_ids' => [$tag->id],
+        'region_ids' => [$region->id],
+    ])->assertRedirect();
+    homologationTransition($author, $publication, 'submit', ['revision_id' => $revision->id])->assertRedirect();
+    homologationTransition($editor, $publication, 'approve', ['revision_id' => $revision->id, 'note' => 'Fontes e território conferidos.'])->assertRedirect();
+    homologationTransition($editor, $publication, 'publish', ['revision_id' => $revision->id])->assertRedirect();
+    expect($publication->refresh()->status)->toBe(PublicationStatus::Published);
+
+    $this->get(route('stories.show', $publication->currentSlug->slug))->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('editorial/publication')
+            ->where('publication.title', 'DEMO UX007 · Caminhos de uma memória')
+            ->where('publication.municipality.name', $municipality->name)
+            ->where('publication.category.name', $category->name)
+            ->where('publication.tags.0.name', $tag->name)
+            ->where('publication.regions.0.name', $region->name));
+    $this->get(route('stories.index', [
+        'category' => $category->slug,
+        'tag' => $tag->slug,
+        'municipality' => $municipality->id,
+        'region' => $region->id,
+    ]))->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('publications.data.0.title', 'DEMO UX007 · Caminhos de uma memória'));
+    $this->get(route('regions.show', $region))->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('region.name', $region->name)
+        ->where('recent.data.0.title', 'DEMO UX007 · Caminhos de uma memória')
+        ->where('municipalities.data.0.name', $municipality->name));
+    $this->get(route('home'))->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('recent.0.title', 'DEMO UX007 · Caminhos de uma memória'));
+
+    expect(AuditEntry::where('publication_id', $publication->id)->pluck('action')->all())
+        ->toContain('submitted', 'approved', 'published');
 });
 
 it('applies the DESG-V2-006 role matrix with independent administrator and editor roles', function (array $roles, bool $manageRoles, bool $review, bool $create) {

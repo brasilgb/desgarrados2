@@ -33,6 +33,7 @@ function editorialText(string $title = 'Memórias da nossa terra'): array
 {
     return ['type' => 'memory', 'title' => $title, 'summary' => 'Uma lembrança da infância.',
         'body' => "Primeiro parágrafo.\n\nSegundo parágrafo.", 'public_byline' => 'Assinatura editorial',
+        'rights_status' => 'original', 'rights_author' => 'Autor da obra',
         'sources' => [['title' => 'Acervo local', 'url' => 'https://example.org/acervo', 'attribution' => 'Arquivo da cidade', 'accessed_at' => '2026-10-08']]];
 }
 function editorialApproved(EditorialWorkflow $workflow, User $author, User $editor, string $title = 'Memórias da nossa terra'): array
@@ -72,6 +73,24 @@ it('submits approves and publishes a revision atomically with audit', function (
     expect($p->refresh()->published_revision_id)->toBe($r->id)->and(Publication::publiclyVisible()->count())->toBe(1)
         ->and(AuditEntry::where('publication_id', $p->id)->pluck('action')->all())->toContain('submitted', 'approved', 'published');
     expect(AuditEntry::where('publication_id', $p->id)->first()->changes)->not->toHaveKey('body');
+});
+it('blocks publication unless text rights are verifiable and retains detailed provenance', function () {
+    $text = editorialText();
+    unset($text['rights_status'], $text['rights_author']);
+    $p = $this->workflow->create($this->author, $text);
+    $revision = $p->revisions()->sole();
+    $this->workflow->submit($this->author, $revision);
+    $this->workflow->review($this->editor, $revision, true, null);
+    expect(fn () => $this->workflow->publish($this->editor, $p, $revision))->toThrow(ValidationException::class);
+    expect($p->refresh()->status)->toBe(PublicationStatus::InReview);
+
+    $authorized = [...$text, 'title' => 'Texto autorizado e verificável', 'rights_status' => 'authorized', 'rights_holder' => 'Titular DEMO',
+        'rights_basis' => 'Autorização escrita recebida em 2026-10-10', 'rights_reference' => 'arquivo-autorizacao-demo-007',
+        'rights_restrictions' => 'Uso editorial apenas'];
+    $other = $this->workflow->create($this->author, $authorized);
+    $r = $other->revisions()->sole();
+    expect($r->rights_status->value)->toBe('authorized')->and($r->rights_holder)->toBe('Titular DEMO')
+        ->and($r->rights_reference)->toBe('arquivo-autorizacao-demo-007')->and($r->rights_restrictions)->toBe('Uso editorial apenas');
 });
 it('rejects submitted revisions with a required review note', function () {
     $p = $this->workflow->create($this->author, editorialText());
@@ -225,7 +244,7 @@ it('rejects arbitrary types HTML and unsafe source URLs', function (array $overr
     expect(fn () => $this->workflow->create($this->author, [...editorialText(), ...$override]))->toThrow(ValidationException::class);
     expect(Publication::count())->toBe(0);
 })->with([[['type' => 'arbitrary']], [['body' => '<img src="https://example.org/x">']], [['sources' => [['title' => 'Insegura', 'url' => 'javascript:alert(1)']]]]]);
-it('enforces compound FK approval checks and revision version uniqueness in MariaDB', function () {
+it('enforces compound FK approval checks and revision version uniqueness in MySQL or MariaDB', function () {
     [$p, $r] = editorialApproved($this->workflow, $this->author, $this->editor);
     [$other, $foreign] = editorialApproved($this->workflow, $this->author, $this->editor, 'Outra');
     expect(fn () => DB::table('publications')->where('id', $p->id)->update(['published_revision_id' => $foreign->id, 'published_revision_status' => 'approved']))->toThrow(QueryException::class);
@@ -267,6 +286,37 @@ it('serves only the matching public municipal regional and section feeds', funct
     $this->get(route('stories.index', ['municipality' => $m->id, 'region' => $region->id]))->assertInertia(fn (Assert $page) => $page->has('publications.data', 1));
     $this->get(route('stories.section', 'causos'))->assertInertia(fn (Assert $page) => $page->has('publications.data', 0));
     $this->get(route('stories.section', 'inexistente'))->assertNotFound();
+});
+it('filters the public archive by existing themes, expressions and territories', function () {
+    [$publication, $revision] = editorialApproved($this->workflow, $this->author, $this->editor);
+    $this->workflow->publish($this->editor, $publication, $revision);
+    $municipality = Municipality::factory()->create();
+    $region = Region::factory()->create();
+    $category = Category::create(['name' => 'Literatura', 'slug' => 'literatura']);
+    $tag = Tag::create(['name' => 'Poesia', 'slug' => 'poesia']);
+    $this->workflow->metadata($this->editor, $publication, [
+        'municipality_id' => $municipality->id,
+        'region_ids' => [$region->id],
+        'category_id' => $category->id,
+        'tag_ids' => [$tag->id],
+    ]);
+
+    $this->get(route('stories.index', [
+        'category' => $category->slug,
+        'tag' => $tag->slug,
+        'municipality' => $municipality->id,
+        'region' => $region->id,
+    ]))->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->has('publications.data', 1)
+        ->where('publications.data.0.slug', $publication->currentSlug()->value('slug'))
+        ->where('filters.category', $category->slug)
+        ->where('filters.tag', $tag->slug)
+        ->where('filters.municipality', (string) $municipality->id)
+        ->where('filters.region', (string) $region->id)
+        ->where('categories.0.slug', $category->slug)
+        ->where('tags.0.slug', $tag->slug)
+        ->where('municipalities.0.id', $municipality->id)
+        ->where('regions.0.id', $region->id));
 });
 it('soft deletes while preserving revisions aliases and audit', function () {
     [$p, $r] = editorialApproved($this->workflow, $this->author, $this->editor);

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property int $id
@@ -34,6 +35,12 @@ class Municipality extends Model
     public function regions(): BelongsToMany
     {
         return $this->belongsToMany(Region::class);
+    }
+
+    /** @return HasMany<Publication, $this> */
+    public function publications(): HasMany
+    {
+        return $this->hasMany(Publication::class);
     }
 
     protected function casts(): array

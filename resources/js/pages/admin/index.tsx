@@ -27,7 +27,32 @@ export default function Administration({
                         >
                             <h2 className="font-semibold">Redação</h2>
                             <p className="mt-2 text-sm text-muted-foreground">
-                                Publicações, revisões e território editorial.
+                                Acervo, revisões, mídias e comprovantes de
+                                direitos.
+                            </p>
+                        </Link>
+                    )}
+                    {canEdit && (
+                        <Link
+                            href="/administracao/editorial/regioes"
+                            className="rounded-xl border p-6"
+                        >
+                            <h2 className="font-semibold">Regiões</h2>
+                            <p className="mt-2 text-sm text-muted-foreground">
+                                Vínculos territoriais e páginas culturais.
+                            </p>
+                        </Link>
+                    )}
+                    {canEdit && (
+                        <Link
+                            href="/administracao/editorial/destaques"
+                            className="rounded-xl border p-6"
+                        >
+                            <h2 className="font-semibold">
+                                Destaques do acervo
+                            </h2>
+                            <p className="mt-2 text-sm text-muted-foreground">
+                                Programação editorial temporária e regional.
                             </p>
                         </Link>
                     )}
@@ -40,9 +65,23 @@ export default function Administration({
                         </p>
                     </Link>
                     {canManageRoles && (
+                        <Link
+                            href="/administracao/usuarios"
+                            className="rounded-xl border p-6"
+                        >
+                            <h2 className="font-semibold">
+                                Usuários e permissões
+                            </h2>
+                            <p className="mt-2 text-sm text-muted-foreground">
+                                Contas, acessos, papéis e auditoria
+                                administrativa.
+                            </p>
+                        </Link>
+                    )}
+                    {canManageRoles && (
                         <Link href={roles()} className="rounded-xl border p-6">
                             <h2 className="font-semibold">
-                                Papéis e auditoria
+                                Auditoria de papéis
                             </h2>
                             <p className="mt-2 text-sm text-muted-foreground">
                                 Concessões e revogações com justificativa.

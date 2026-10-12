@@ -98,6 +98,12 @@ class Publication extends Model
         return $this->belongsToMany(Region::class);
     }
 
+    /** @return HasMany<PublicationFeature, $this> */
+    public function features(): HasMany
+    {
+        return $this->hasMany(PublicationFeature::class);
+    }
+
     /** @param Builder<Publication> $query */
     public function scopePubliclyVisible(Builder $query): void
     {

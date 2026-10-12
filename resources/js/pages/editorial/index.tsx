@@ -63,6 +63,10 @@ export default function Editorial({
                 <nav className="flex gap-4" aria-label="Taxonomia">
                     <Link href={taxonomy('categories')}>Categorias</Link>
                     <Link href={taxonomy('tags')}>Tags</Link>
+                    <Link href="/administracao/editorial/regioes">Regiões</Link>
+                    <Link href="/administracao/editorial/destaques">
+                        Destaques
+                    </Link>
                 </nav>
             )}
             <form
